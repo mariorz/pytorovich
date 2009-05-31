@@ -26,8 +26,16 @@ class GoalProblem(object):
         count = len(self.lp.rows)
         self.lp.rows.add(1)
         row = self.lp.rows[count]
-        #row.name = name
+        
+        try:
+            row.name = eq[1]
+            eq = eq[0]
+        except:
+            pass
+            
+        
         row.bounds = -eq.constant, -eq.constant
+
         for col in self.lp.cols:
             if col.name in eq:
                 self.matrix.append(eq[col.name])
@@ -51,8 +59,17 @@ class GoalProblem(object):
         self.lp.obj[:] = self.pri_matrix[0]
     
     def solve(self):
-        self.__copy_matrices__()
-        self.lp.simplex()
+        for pri in self.prios:
+            self.__copy_matrices__()
+            self.lp.simplex()
+            count = len(self.lp.rows)
+            self.lp.rows.add(1)
+            objval = self.lp.obj.value
+            self.lp.rows[count].bounds = objval, objval
+            for n in self.pri_matrix[0]:
+                self.matrix.append(n)
+            del self.pri_matrix[0]
+            del self.prios[0]
     
     def display(self):
         print 'Z = %g;' % self.lp.obj.value
@@ -61,8 +78,6 @@ class GoalProblem(object):
 
 
 
-
-    
 
 class GoalVariable(object):
     def __init__(self, name, lower=None, upper=None):
