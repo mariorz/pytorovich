@@ -8,6 +8,8 @@ class GoalProblem(object):
         self.lp.name = name     
         self.lp.obj.maximize = False
         self.matrix = []
+        self.prios = []
+        self.pri_matrix = []
     
     def variable(self, name, lower=None, upper=None):
         count = len(self.lp.cols)
@@ -32,19 +34,34 @@ class GoalProblem(object):
             else:
                 self.matrix.append(0)
 
-        
-        
     def priority(self, eq):
-        pass
+        if isinstance(eq, GoalVariable):
+            eq = GoalExpresion(eq)
+        self.prios.append(eq)
+        obj_row = []
+        for col in self.lp.cols:
+            if col.name in eq:
+                obj_row.append(eq[col.name])
+            else:
+                obj_row.append(0)
+        self.pri_matrix.append(obj_row)
 
-    def __copy_matrix(self):
+    def __copy_matrices__(self):
         self.lp.matrix = self.matrix
+        self.lp.obj[:] = self.pri_matrix[0]
     
     def solve(self):
-        pass
+        self.__copy_matrices__()
+        self.lp.simplex()
     
     def display(self):
-        pass
+        print 'Z = %g;' % self.lp.obj.value
+        print '; '.join('%s = %g' % (c.name, c.primal) for c in self.lp.cols)
+                      
+
+
+
+
     
 
 class GoalVariable(object):
