@@ -27,7 +27,7 @@ class GoalProblem(object):
         self.lp.rows.add(1)
         row = self.lp.rows[count]
         #row.name = name
-        row.bounds = None, -eq.constant
+        row.bounds = -eq.constant, -eq.constant
         for col in self.lp.cols:
             if col.name in eq:
                 self.matrix.append(eq[col.name])
