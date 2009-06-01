@@ -258,12 +258,12 @@ class ProbCasesTest(unittest.TestCase):
         f2 = x0 + x1 + x2 + n2 - p2 == 100
         f3 = 10*x0 + 4*x1 + 5*x2 + n3 - p3 == 600
         f4 = 2*x0 + 2*x1 + 6*x2 + n4 - p4 == 300
-        prob.objective(f1)
-        prob.objective(f2)
-        prob.objective(f3)
-        prob.objective(f4)
-        prob.priority(p2+p3+p4)
-        prob.priority(n1)
+        prob.objectives = [f1, f2]
+        prob.objectives.append(f3)
+        prob.objectives.append(f4)
+        prob.priorities = [p2+p3+p4]
+        #prob.priorities.append(p2+p3+p4)
+        prob.priorities.append(n1)
         prob.solve()
         self.assertEqual(x0, 33.3333)
         self.assertEqual(x1,66.6667)
@@ -291,13 +291,8 @@ class ProbCasesTest(unittest.TestCase):
         f1 = x1 + x2 + n1 - p1 == 10
         f2 = x1 + n2 - p2 == 4
         f3 = 5*x1 + 3*x2 + n3 - p3 == 56
-        o1 = prob.objective(f1)
-        o2 = prob.objective(f2)
-        o3 = prob.objective(f3)
-        g1 = 2*p1 + 3*p2
-        g2 = n3
-        P1 = prob.priority(g1)
-        P2 = prob.priority(g2)
+        prob.objectives = [f1, f2, f3]
+        prob.priorities = [2*p1 + 3*p2,n3]
         prob.solve()
         self.assertEqual(x1,4.0)
         self.assertEqual(x2,6.0)

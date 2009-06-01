@@ -10,6 +10,8 @@ class GoalProblem(object):
         self.matrix = []
         self.prios = []
         self.pri_matrix = []
+        self._objectives = []
+
     
     def variable(self, name, lower=None, upper=None):
         count = len(self.lp.cols)
@@ -19,20 +21,63 @@ class GoalProblem(object):
         col.bounds = lower, upper
         var = GoalVariable(name, lower, upper)
         return var
-    
+
+
+    def get_objectives(self):
+        return self._objectives
+
+    def set_objectives(self, objectives):
+        self.del_objectives()
+        for obj in objectives:
+            self.objective(obj)
+        
+
+    def del_objectives(self):
+        self._objectives=[]
+        del self.lp.rows[:]
+
+    objectives = property(get_objectives, 
+                          set_objectives, 
+                          del_objectives)
+   
+
+
+    def get_priorities(self):
+        return self.prios
+
+    def set_priorities(self, priorities):
+        self.del_priorities()
+        for pri in priorities:
+            self.priority(pri)
+        
+            
+
+    def del_priorities(self):
+        #why not del self.prios?
+        self.prios=[]
+        self.pri_matrix = []
+        
+        
+    priorities = property(get_priorities, 
+                          set_priorities, 
+                          del_priorities)
+
+
     def objective(self, eq):
         if isinstance(eq, GoalVariable):
             eq = GoalExpresion(eq)
-
+        
+        self._objectives.append(eq)
         count = len(self.lp.rows)
         self.lp.rows.add(1)
         row = self.lp.rows[count]
 
         try:
+            #can it take names with spaces?
             row.name = eq[1]
             eq = eq[0]
         except:
-            pass
+            row.name = None
 
         row.bounds = -eq.constant, -eq.constant
         for col in self.lp.cols:
@@ -51,6 +96,8 @@ class GoalProblem(object):
                 obj_row.append(eq[col.name])
             else:
                 obj_row.append(0)
+
+
         self.pri_matrix.append(obj_row)
 
     def __copy_matrices__(self):
