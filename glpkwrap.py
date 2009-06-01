@@ -23,19 +23,18 @@ class GoalProblem(object):
     def objective(self, eq):
         if isinstance(eq, GoalVariable):
             eq = GoalExpresion(eq)
+
         count = len(self.lp.rows)
         self.lp.rows.add(1)
         row = self.lp.rows[count]
-        
+
         try:
             row.name = eq[1]
             eq = eq[0]
         except:
             pass
-            
-        
-        row.bounds = -eq.constant, -eq.constant
 
+        row.bounds = -eq.constant, -eq.constant
         for col in self.lp.cols:
             if col.name in eq:
                 self.matrix.append(eq[col.name])
@@ -72,7 +71,6 @@ class GoalProblem(object):
             del self.prios[0]
     
     def display(self):
-        print 'Z = %g;' % self.lp.obj.value
         print '; '.join('%s = %g' % (c.name, c.primal) for c in self.lp.cols)
                       
 
@@ -125,22 +123,29 @@ class GoalExpresion(dict):
         else:
             self.constant = 0
             dict.__init__(self)
-    
-    def __neg__(self):
-        e = GoalExpresion(self)
-        return e * -1
 
     def __add__(self, other):
-        return self.addop(other)
-    
+        e = GoalExpresion(self)
+        if other is 0: return e
+        if isinstance(other, int):
+            e.constant += other
+        elif isinstance(other, GoalVariable):
+            e.addterm(other.name, 1)
+        elif isinstance(other, GoalExpresion):
+            e.constant += other.constant
+            for v,x in other.iteritems():
+                e.addterm(v, x)
+        return e
+
+
     def __radd__(self, other):
-        return self.addop(other)
+        return self + other
     
     def __sub__(self, other):
-        return self.addop(-other)
+        return self + (-other)
     
     def __rsub__(self, other):
-        return (-self).addop(other)
+        return (-self) + other
 
     def __mul__(self, other):
         e = GoalExpresion()
@@ -160,19 +165,14 @@ class GoalExpresion(dict):
     
     def __eq__(self, other):
         return GoalObjective(self - other)
-    
-    def addop(self, other):
+       
+
+    def __pos__(self):
+        return self
+        
+    def __neg__(self):
         e = GoalExpresion(self)
-        if other is 0: return e
-        if isinstance(other, int):
-            e.constant += other
-        elif isinstance(other, GoalVariable):
-            e.addterm(other.name, 1)
-        elif isinstance(other, GoalExpresion):
-            e.constant += other.constant
-            for v,x in other.iteritems():
-                e.addterm(v, x)
-        return e
+        return e * -1
     
     def addterm(self, key, value):
         y = self.get(key, 0)

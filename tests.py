@@ -225,14 +225,11 @@ class ProbCasesTest(unittest.TestCase):
         P2 = prob.priority(n2)
         P2 = prob.priority(n3)
         prob.solve()
-        
         results = {}
         for c in prob.lp.cols:
             results[c.name] = c.primal
-
         latex = results['LatexPaint']
         emanel = results['EmanelPaint']
-        
         self.assertEqual(latex, 4)
         self.assertEqual(emanel,0)
 
@@ -268,10 +265,6 @@ class ProbCasesTest(unittest.TestCase):
         prob.priority(p2+p3+p4)
         prob.priority(n1)
         prob.solve()
-        results = {}
-        for c in prob.lp.cols:
-            results[c.name] = c.primal
-
         self.assertEqual(x0, 33.3333)
         self.assertEqual(x1,66.6667)
         self.assertEqual(x2,0)
@@ -306,10 +299,6 @@ class ProbCasesTest(unittest.TestCase):
         P1 = prob.priority(g1)
         P2 = prob.priority(g2)
         prob.solve()
-        results = {}
-        for c in prob.lp.cols:
-            results[c.name] = c.primal
-
         self.assertEqual(x1,4.0)
         self.assertEqual(x2,6.0)
 
