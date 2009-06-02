@@ -1,5 +1,5 @@
 
-from glpkwrap import GoalProblem
+from glpkwrap import LinearProblem
 import unittest
 
 
@@ -7,14 +7,14 @@ class AlgebraTest(unittest.TestCase):
     
   
     def test_sum_var_int(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 + 6
         self.assertEqual(f[x1.name], 1)
         self.assertEqual(f.constant, 6)
 
     def test_sum_int_var(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         f = 2 + x1
         self.assertEqual(f[x1.name], 1)
@@ -22,7 +22,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sum_exp_int(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 + 6
         g = f + 3
@@ -31,7 +31,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sum_int_exp(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         g = x1 + 4
         f = 2 + g
@@ -39,7 +39,7 @@ class AlgebraTest(unittest.TestCase):
         self.assertEqual(f.constant, 6)
 
     def test_sum_var_exp(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + 6
@@ -49,7 +49,7 @@ class AlgebraTest(unittest.TestCase):
         self.assertEqual(g.constant, 6)
 
     def test_sum_exp_var(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + 6
@@ -59,7 +59,7 @@ class AlgebraTest(unittest.TestCase):
         self.assertEqual(g.constant, 6)
 
     def test_sum_var_var(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + x2
@@ -68,7 +68,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sum_exp_exp(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         g = x1 + 4
@@ -80,7 +80,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sub_var_int(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 - 3
         self.assertEqual(f[x1.name], 1)
@@ -88,14 +88,14 @@ class AlgebraTest(unittest.TestCase):
 
     
     def test_sub_int_var(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         f = 8 - x1
         self.assertEqual(f[x1.name], -1)
         self.assertEqual(f.constant, 8)
 
     def test_sub_exp_int(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 + 6
         g = f - 3
@@ -104,7 +104,7 @@ class AlgebraTest(unittest.TestCase):
 
     
     def test_sub_int_exp(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         g = x1 + 4
         f = 2 - g
@@ -113,7 +113,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sub_var_exp(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + 6
@@ -123,7 +123,7 @@ class AlgebraTest(unittest.TestCase):
         self.assertEqual(g.constant, -6)
 
     def test_sub_exp_var(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + 6
@@ -134,7 +134,7 @@ class AlgebraTest(unittest.TestCase):
         
    
     def test_sub_var_var(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 - x2
@@ -144,7 +144,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sub_exp_exp(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         g = x1 + 4
@@ -156,7 +156,7 @@ class AlgebraTest(unittest.TestCase):
   
 
     def test_mult_var_int(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 * 2
         self.assertEqual(f[x1.name], 2)
@@ -164,14 +164,14 @@ class AlgebraTest(unittest.TestCase):
         
 
     def test_mult_int_var(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         f = 2 * x1
         self.assertEqual(f[x1.name], 2)
         self.assertEqual(f.constant, 0)
 
     def test_mult_exp_int(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         g = x1 + 2
         f = g * 7
@@ -180,7 +180,7 @@ class AlgebraTest(unittest.TestCase):
         
 
     def test_mult_int_exp(self):
-        prob = GoalProblem('unit test')
+        prob = LinearProblem('unit test')
         x1 = prob.variable("x1",0)
         g = x1 + 4
         f = 2 * g
@@ -206,7 +206,7 @@ class ProbCasesTest(unittest.TestCase):
         p3 = 0.0
         n3 = 7.0
         """
-        prob = GoalProblem("The Paint Company Problem")
+        prob = LinearProblem("The Paint Company Problem")
         x1 = prob.variable("LatexPaint",0)
         x2 = prob.variable("EmanelPaint",0)
         n1 = prob.variable("n1",0)
@@ -218,12 +218,8 @@ class ProbCasesTest(unittest.TestCase):
         f1 = 10*x1 + 15*x2 + n1 - p1 == 40
         f2 = 100*x1 + 100*x2 + n2 - p2 == 1000
         f3 = x2 + n3 - p3 == 7
-        o1 = prob.objective(f1)
-        o2 = prob.objective(f2)
-        o3 = prob.objective(f3)
-        P1 = prob.priority(p1)
-        P2 = prob.priority(n2)
-        P2 = prob.priority(n3)
+        prob.constraints = [f1,f2,f3]
+        prob.priorities = [p1, n2, n3]
         prob.solve()
         results = {}
         for c in prob.lp.cols:
@@ -239,10 +235,10 @@ class ProbCasesTest(unittest.TestCase):
         http://www.cs.cornell.edu/~tomf/pyglpk/ex_ref.html
         
         RESULTS:
-        Z = 733.333; x0 = 33.3333; x1 = 66.6667; x2 = 0
+        x0 = 33.3333; x1 = 66.6667; x2 = 0
         """
 
-        prob = GoalProblem("Goal Programming Test Problem")
+        prob = LinearProblem("Linear Programming Test Problem")
         x0 = prob.variable("x0",0)
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
@@ -258,9 +254,9 @@ class ProbCasesTest(unittest.TestCase):
         f2 = x0 + x1 + x2 + n2 - p2 == 100
         f3 = 10*x0 + 4*x1 + 5*x2 + n3 - p3 == 600
         f4 = 2*x0 + 2*x1 + 6*x2 + n4 - p4 == 300
-        prob.objectives = [f1, f2]
-        prob.objectives.append(f3)
-        prob.objectives.append(f4)
+        prob.constraints = [f1, f2]
+        prob.constraints.append(f3)
+        prob.constraints.append(f4)
         prob.priorities = [p2+p3+p4]
         #prob.priorities.append(p2+p3+p4)
         prob.priorities.append(n1)
@@ -279,7 +275,7 @@ class ProbCasesTest(unittest.TestCase):
         objective function:  18.0
 
         """
-        prob = GoalProblem("Goal Programming Test Problem")
+        prob = LinearProblem("Linear Programming Test Problem")
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         n1 = prob.variable("n1",0)
@@ -291,11 +287,15 @@ class ProbCasesTest(unittest.TestCase):
         f1 = x1 + x2 + n1 - p1 == 10
         f2 = x1 + n2 - p2 == 4
         f3 = 5*x1 + 3*x2 + n3 - p3 == 56
-        prob.objectives = [f1, f2, f3]
+        prob.constraints = [f1, f2, f3]
         prob.priorities = [2*p1 + 3*p2,n3]
         prob.solve()
         self.assertEqual(x1,4.0)
         self.assertEqual(x2,6.0)
+
+
+
+        
 
 
 if __name__ == '__main__':
