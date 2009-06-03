@@ -1,16 +1,22 @@
 
 import glpk
 
+#TODO:
+# choose better class names
+# deletion of matrix is bad
+# append does not work
 
 class LinearProblem(object):
-    def __init__(self, name, objective='min'):
+    def __init__(self, name=None, obj_dir='min'):
+        
         self.lp = glpk.LPX()        
-        self.lp.name = name
-        self.objective = objective
+        self.name = self.lp.name = name
+        self.obj_dir = obj_dir
         self._const_matrix = []
-        self._pri_matrix = []
+        self._obj_matrix = []
         self._constraints = []
-        self._periorities = []
+        self._objectives = []
+        self._vars = []
     
     def get_constraints(self):
         return self._constraints
@@ -28,27 +34,28 @@ class LinearProblem(object):
                           set_constraints, 
                           del_constraints)
 
-    def get_priorities(self):
-        return self._priorities
+    def get_objectives(self):
+        return self._objectives
 
-    def set_priorities(self, priorities):
-        self.del_priorities()
-        for pri in priorities:
-            self._add_priority(pri)
+    def set_objectives(self, objectives):
+        if isinstance(objectives, LinearVariable):
+            objectives = [objectives]
+        self.del_objectives()
+        for pri in objectives:
+            self._add_objective(pri)
 
-    def del_priorities(self):
-        #why not del self._priorities?
-        self._priorities=[]
-        self._pri_matrix = []
+    def del_objectives(self):
+        self._objectives=[]
+        self._obj_matrix = []
         
-    priorities = property(get_priorities, 
-                          set_priorities, 
-                          del_priorities)
+    objectives = property(get_objectives, 
+                          set_objectives, 
+                          del_objectives)
 
 
     def _add_constraint(self, eq):
         if isinstance(eq, LinearVariable):
-            eq = LinearEquation(eq)
+            eq = LinearConstraint(eq)
         
         self._constraints.append(eq)
         count = len(self.lp.rows)
@@ -56,23 +63,35 @@ class LinearProblem(object):
         row = self.lp.rows[count]
 
         try:
-            #can it take names with spaces?
             row.name = eq[1]
             eq = eq[0]
         except:
             row.name = None
 
-        row.bounds = -eq.constant, -eq.constant
+        if eq.constant is None or eq.constant == 0:
+            print "eq: %s, constant;: %s" % (eq, eq.constant)
+
+            
+        if eq.rhseq == 'eq':
+            row.bounds = -eq.constant, -eq.constant
+        elif eq.rhseq == 'le':
+            row.bounds = None, -eq.constant
+        elif eq.rhseq == 'ge':
+            row.bounds = -eq.constant, None
+        else:
+            print "WTFMFKWTF"
+            
+
         for col in self.lp.cols:
             if col.name in eq:
                 self._const_matrix.append(eq[col.name])
             else:
                 self._const_matrix.append(0)
 
-    def _add_priority(self, eq):
+    def _add_objective(self, eq):
         if isinstance(eq, LinearVariable):
             eq = LinearEquation(eq)
-        self._priorities.append(eq)
+        
         obj_row = []
         for col in self.lp.cols:
             if col.name in eq:
@@ -80,12 +99,12 @@ class LinearProblem(object):
             else:
                 obj_row.append(0)
 
-
-        self._pri_matrix.append(obj_row)
+        self._objectives.append(eq)
+        self._obj_matrix.append(obj_row)
 
     def _copy_matrices(self):
         self.lp.matrix = self._const_matrix
-        self.lp.obj[:] = self._pri_matrix[0]
+        self.lp.obj[:] = self._obj_matrix[0]
 
 
     def variable(self, name, lower=None, upper=None):
@@ -95,38 +114,43 @@ class LinearProblem(object):
         col.name = name
         col.bounds = lower, upper
         var = LinearVariable(name, lower, upper)
+        self._vars.append(var)
         return var
 
     
     def solve(self):
-        if self.objective == 'min':
+        if self.obj_dir == 'min':
             self.lp.obj.maximize = False
         else:
             self.lp.obj.maximize = True
-        for pri in self._priorities:
+        for pri in self._objectives:
             self._copy_matrices()
             self.lp.simplex()
             count = len(self.lp.rows)
             self.lp.rows.add(1)
             objval = self.lp.obj.value
             self.lp.rows[count].bounds = objval, objval
-            for n in self._pri_matrix[0]:
+            for n in self._obj_matrix[0]:
                 self._const_matrix.append(n)
-            del self._pri_matrix[0]
-            del self._priorities[0]
+            #deletion of matrix is fucked up
+            del self._obj_matrix[0]
+            del self._objectives[0]
+
+        for c in self.lp.cols:
+            for var in self._vars:
+                if c.name == var.name:
+                    var.result = c.primal
     
     def display(self):
         print '; '.join('%s = %g' % (c.name, c.primal) for c in self.lp.cols)
                       
-
-
-
 
 class LinearVariable(object):
     def __init__(self, name, lower=None, upper=None):
         self.name = name
         self.lower = lower
         self.upper = upper
+        self.result = None
     
     def __add__(self, other):
         return LinearEquation(self) + other
@@ -156,31 +180,33 @@ class LinearVariable(object):
         return LinearEquation(self) == other
 
 
-
 class LinearEquation(dict):
-    def __init__(self, e=None, cons=0):
-        if isinstance(e, LinearEquation):
-            self.constant = e.constant
-            dict.__init__(self, e)
-        elif isinstance(e, LinearVariable):
+    def __init__(self, eq=None, rhseq=None):
+        if isinstance(eq, LinearEquation):
+            self.constant = eq.constant
+            self.rhseq = rhseq
+            dict.__init__(self, eq)
+        elif isinstance(eq, LinearVariable):
             self.constant = 0
-            dict.__init__(self, {e.name:1})
+            self.rhseq = rhseq
+            dict.__init__(self, {eq.name:1})
         else:
             self.constant = 0
+            self.rhseq = rhseq
             dict.__init__(self)
 
     def __add__(self, other):
-        e = LinearEquation(self)
-        if other is 0: return e
-        if isinstance(other, int):
-            e.constant += other
+        eq = LinearEquation(self)
+        #if other == 0.0: return eq
+        if isinstance(other, int) or isinstance(other, float):
+            eq.constant += other
         elif isinstance(other, LinearVariable):
-            e._addterm(other.name, 1)
+            eq._addterm(other.name, 1)
         elif isinstance(other, LinearEquation):
-            e.constant += other.constant
+            eq.constant += other.constant
             for v,x in other.iteritems():
-                e._addterm(v, x)
-        return e
+                eq._addterm(v, x)
+        return eq
 
 
     def __radd__(self, other):
@@ -193,31 +219,36 @@ class LinearEquation(dict):
         return (-self) + other
 
     def __mul__(self, other):
-        e = LinearEquation()
-        if isinstance(other, int):
+        eq = LinearEquation()
+        if isinstance(other, int) or isinstance(other, float):
             if other != 0:
-                e.constant = self.constant * other
+                eq.constant = self.constant * other
                 for v,x in self.iteritems():
-                        e[v] = x * other
+                        eq[v] = x * other
         elif isinstance(other, LinearVariable):
             return self * LinearEquation(other)
         elif isinstance(other, LinearEquation):
-            raise TypeError, "Non-constant expressions cannot be multiplied in LP"
-        return e
+            raise TypeError, "Non-constants cannot be multiplied in LP"
+        return eq
     
     def __rmul__(self, other):
         return (self * other)
     
     def __eq__(self, other):
-        return LinearEquation(self - other)
-       
+        return LinearEquation(self - other, 'eq')
 
+    def __ge__(self, other):
+        return LinearEquation(self - other, 'ge')
+
+    def __le__(self, other):
+        return LinearEquation(self - other, 'le')
+       
     def __pos__(self):
         return self
         
     def __neg__(self):
-        e = LinearEquation(self)
-        return e * -1
+        eq = LinearEquation(self)
+        return eq * -1
     
     def _addterm(self, key, value):
         y = self.get(key, 0)
@@ -227,6 +258,5 @@ class LinearEquation(dict):
             else: del self[key]
         else:
             self[key] = value
-
 
 
