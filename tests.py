@@ -3,6 +3,7 @@ from glpkwrap import LinearProblem
 import unittest
 
 
+
 class AlgebraTest(unittest.TestCase):
     
   
@@ -221,13 +222,8 @@ class ProbCasesTest(unittest.TestCase):
         prob.constraints = [f1,f2,f3]
         prob.objective = [p1, n2, n3]
         prob.solve()
-        results = {}
-        for c in prob.lp.cols:
-            results[c.name] = c.primal
-        latex = results['LatexPaint']
-        emanel = results['EmanelPaint']
-        self.assertEqual(latex, 4)
-        self.assertEqual(emanel,0)
+        self.assertEqual(x1.result, 4)
+        self.assertEqual(x2.result,0)
 
 
     def test_pyglpk_StdExample_case(self):
@@ -249,12 +245,10 @@ class ProbCasesTest(unittest.TestCase):
             ]
         prob.objective = [10*x0 + 6*x1 + 4*x2]
         prob.solve()
-        results = {}
-        for c in prob.lp.cols:
-            results[c.name] = c.primal
-        self.assertEqual(results['x0'], 33.333333333333336)
-        self.assertEqual(results['x1'], 66.666666666666657)
-        self.assertEqual(results['x2'], 0)
+        
+        self.assertEqual(round(x0.result, 3), 33.333)
+        self.assertEqual(round(x1.result, 3), 66.667)
+        
 
 
     def test_pyglpk_GoalExample_case(self):
@@ -284,12 +278,9 @@ class ProbCasesTest(unittest.TestCase):
         prob.constraints = [f1, f2, f3, f4]
         prob.objective = [p2+p3+p4, n1]
         prob.solve()
-        results = {}
-        for c in prob.lp.cols:
-            results[c.name] = c.primal
-        self.assertEqual(results['x0'], 33.333333333333329)
-        self.assertEqual(results['x1'], 66.666666666666671)
-        self.assertEqual(results['x2'], 0)
+        
+        self.assertEqual(round(x0.result, 3), 33.333)
+        self.assertEqual(round(x1.result, 3), 66.667)
 
 
     def test_ignizio_example_case(self):
@@ -316,11 +307,8 @@ class ProbCasesTest(unittest.TestCase):
         prob.constraints = [f1, f2, f3]
         prob.objective = [2*p1 + 3*p2,n3]
         prob.solve()
-        results = {}
-        for c in prob.lp.cols:
-            results[c.name] = c.primal
-        self.assertEqual(results['x1'],4.0)
-        self.assertEqual(results['x2'],6.0)
+        self.assertEqual(x1.result, 4.0)
+        self.assertEqual(x2.result, 6.0)
 
 
 
@@ -344,10 +332,12 @@ class ProbCasesTest(unittest.TestCase):
             ]
         prob.solve()
         
-        self.assertEqual(x1.result, 33.333333333333307)
-        self.assertEqual(x2.result, 66.666666666666686)
+        self.assertEqual(round(x1.result, 3), 33.333)
 
+        self.assertEqual(round(x2.result, 3), 66.667)
 
+    
+    
     def test_ignizio2_case(self):
         """
         pass

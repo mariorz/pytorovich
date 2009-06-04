@@ -3,8 +3,6 @@ import glpk
 
 #TODO:
 
-
-# fix decimals in tests
 # new class names
 # append does not work
 # fix display
