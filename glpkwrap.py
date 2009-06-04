@@ -6,7 +6,6 @@ import glpk
 
 # fix decimals in tests
 # new class names
-# deletion of matrix in LP.solve is bad
 # append does not work
 # fix display
 
@@ -32,7 +31,7 @@ class LinearProblem(object):
         
     def del_constraints(self):
         self._constraints = []
-        del self.lp.rows[:]
+        
 
     constraints = property(get_constraints, 
                           set_constraints, 
@@ -66,11 +65,7 @@ class LinearProblem(object):
         count = len(self.lp.rows)
         self.lp.rows.add(1)
         row = self.lp.rows[count]
-        try:
-            row.name = eq[1]
-            eq = eq[0]
-        except:
-            row.name = None
+        row.name, eq = self._get_name(eq)
         self._set_row_bounds(row, eq.rhseq, -eq.constant)
         for col in self.lp.cols:
             if col.name in eq:
@@ -92,6 +87,16 @@ class LinearProblem(object):
         self._obj_matrix.append(obj_row)
 
     
+
+    def _get_name(self, eq):
+         try:
+            name = eq[1]
+            eq = eq[0]
+         except:
+             name = None
+         return name, eq
+         
+   
     def _set_row_bounds(self, row, rhseq, const):
         if rhseq == 'le':
             row.bounds = None, const
@@ -145,16 +150,21 @@ class LinearProblem(object):
 
     def solve(self):
         self._sync_direction()
+        mat = self._obj_matrix[:]
+        obj = self._objective[:]
         for pri in self._objective:
             self._sync_matrices()
             self.lp.simplex()
             self._obj_to_constraint()
         self._sync_results()
+        self._obj_matrix = mat
+        self._objective = obj
         
             
     
     def display(self):
-        print '; '.join('%s = %g' % (c.name, c.primal) for c in self.lp.cols)
+        print '; '.join('%s = %s' % (n, r.result) 
+                        for n,r in self._vars.iteritems())
                       
 
 class LinearVariable(object):
