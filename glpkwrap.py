@@ -1,11 +1,11 @@
 
 import glpk
 
-#TODO:
+#TO DO:
 
 # new class names
-# append does not work
-# fix display
+# better print_results
+# docs
 
 
 class LinearProblem(object):
@@ -23,10 +23,14 @@ class LinearProblem(object):
         return self._constraints
 
     def set_constraints(self, constraints):
+        if isinstance(constraints, LinearVariable):
+            constraints = [constraints]
+        elif isinstance(constraints, LinearEquation):
+            constraints = [constraints]
         del self.constraints
         for const in constraints:
-            self._add_constraint(const)
-        
+            self._constraints.append(const)
+    
     def del_constraints(self):
         self._constraints = []
         
@@ -45,7 +49,7 @@ class LinearProblem(object):
             objective = [objective]
         del self.objective
         for obj in objective:
-            self._add_objective(obj)
+            self._objective.append(obj)
 
     def del_objective(self):
         self._objective = []
@@ -54,35 +58,6 @@ class LinearProblem(object):
     objective = property(get_objective, 
                           set_objective, 
                           del_objective)
-
-
-    def _add_constraint(self, eq):
-        if isinstance(eq, LinearVariable):
-            eq = LinearConstraint(eq)
-        self._constraints.append(eq)
-        count = len(self.lp.rows)
-        self.lp.rows.add(1)
-        row = self.lp.rows[count]
-        row.name, eq = self._get_name(eq)
-        self._set_row_bounds(row, eq.rhseq, -eq.constant)
-        for col in self.lp.cols:
-            if col.name in eq:
-                self._const_matrix.append(eq[col.name])
-            else:
-                self._const_matrix.append(0.0)
-
-    
-    def _add_objective(self, eq):
-        if isinstance(eq, LinearVariable):
-            eq = LinearEquation(eq)
-        obj_row = []
-        for col in self.lp.cols:
-            if col.name in eq:
-                obj_row.append(eq[col.name])
-            else:
-                obj_row.append(0.0)
-        self._objective.append(eq)
-        self._obj_matrix.append(obj_row)
 
     
 
@@ -106,6 +81,32 @@ class LinearProblem(object):
 
 
     def _sync_matrices(self):
+        for eq in self.constraints:
+            if isinstance(eq, LinearVariable):
+                eq = LinearEquation(eq)
+            count = len(self.lp.rows)
+            self.lp.rows.add(1)
+            row = self.lp.rows[count]
+            row.name, eq = self._get_name(eq)
+            self._set_row_bounds(row, eq.rhseq, -eq.constant)
+            for col in self.lp.cols:
+                if col.name in eq:
+                    self._const_matrix.append(eq[col.name])
+                else:
+                    self._const_matrix.append(0.0)
+
+        for eq in self.objective:
+            if isinstance(eq, LinearVariable):
+                eq = LinearEquation(eq)
+            obj_row = []
+            for col in self.lp.cols:
+                if col.name in eq:
+                    obj_row.append(eq[col.name])
+                else:
+                    obj_row.append(0.0)
+
+            self._obj_matrix.append(obj_row)
+            
         self.lp.matrix = self._const_matrix
         self.lp.obj[:] = self._obj_matrix[0]
 
@@ -160,9 +161,16 @@ class LinearProblem(object):
         
             
     
-    def display(self):
-        print '; '.join('%s = %s' % (n, r.result) 
-                        for n,r in self._vars.iteritems())
+    def print_results(self):
+        print ""
+        print "Problem Name: %s " % self.name
+        print "Status: %s" % self.lp.status
+        print "Results:"
+        sorted_keys = self._vars.keys()
+	sorted_keys.sort()
+        sorted_keys.reverse()
+        print '\n'.join('%s = %s' % (key, self._vars[key].result) 
+                        for key in sorted_keys)
                       
 
 class LinearVariable(object):

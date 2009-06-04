@@ -219,7 +219,9 @@ class ProbCasesTest(unittest.TestCase):
         f1 = 10*x1 + 15*x2 + n1 - p1 == 40
         f2 = 100*x1 + 100*x2 + n2 - p2 == 1000
         f3 = x2 + n3 - p3 == 7
-        prob.constraints = [f1,f2,f3]
+        prob.constraints = f1
+        prob.constraints.append(f2)
+        prob.constraints.append(f3)
         prob.objective = [p1, n2, n3]
         prob.solve()
         self.assertEqual(x1.result, 4)
@@ -404,7 +406,10 @@ class ProbCasesTest(unittest.TestCase):
         f7 = .06*x1 + .05*x2 +.08*x3 + .07*x4 + n7 - p7 == 4000, "dsds"
 
         prob.constraints = [f1,f2,f3,f4,f5,f6,f7]
-        prob.objective = [p1, n2 + 2*n3 + 2*p4, n6, p5 + n7]
+        prob.objective = p1
+        prob.objective.append(n2 + 2*n3 + 2*p4)
+        prob.objective.append(n6)
+        prob.objective.append(p5 + n7)
         prob.solve()
         
         self.assertEqual(x1.result, 20000.0)
@@ -436,7 +441,7 @@ class ProbCasesTest(unittest.TestCase):
         
         prob.objective = 2*n1 + p2
         prob.solve()
-        prob.display()
+        prob.print_results()
 
 
     def test_class2_case(self):
@@ -466,7 +471,7 @@ class ProbCasesTest(unittest.TestCase):
         
         prob.objective = 200*n1 + 100*n2 + 50*n3
         prob.solve()
-        prob.display()
+        prob.print_results()
         
 if __name__ == '__main__':
     unittest.main()   
