@@ -3,8 +3,7 @@ import glpk
 
 #TODO:
 
-# properties for LPVar attributes
-# refactor solve
+
 # fix decimals in tests
 # new class names
 # deletion of matrix in LP.solve is bad
@@ -72,17 +71,12 @@ class LinearProblem(object):
             eq = eq[0]
         except:
             row.name = None
-        if eq.rhseq == 'le':
-            row.bounds = None, -eq.constant
-        elif eq.rhseq == 'ge':
-            row.bounds = -eq.constant, None
-        else:
-            row.bounds = -eq.constant, -eq.constant
+        self._set_row_bounds(row, eq.rhseq, -eq.constant)
         for col in self.lp.cols:
             if col.name in eq:
                 self._const_matrix.append(eq[col.name])
             else:
-                self._const_matrix.append(0)
+                self._const_matrix.append(0.0)
 
     
     def _add_objective(self, eq):
@@ -97,12 +91,48 @@ class LinearProblem(object):
         self._objective.append(eq)
         self._obj_matrix.append(obj_row)
 
+    
+    def _set_row_bounds(self, row, rhseq, const):
+        if rhseq == 'le':
+            row.bounds = None, const
+        elif rhseq == 'ge':
+            row.bounds = const, None
+        else:
+            row.bounds = const, const
+        
 
-    def _copy_matrices(self):
+
+    def _sync_matrices(self):
         self.lp.matrix = self._const_matrix
         self.lp.obj[:] = self._obj_matrix[0]
 
 
+    def _sync_results(self):
+        for c in self.lp.cols:
+            self._vars[c.name].result = c.primal
+    
+    def _sync_direction(self):
+        if self.obj_dir == 'min':
+            self.lp.obj.maximize = False
+        else:
+            self.lp.obj.maximize = True
+        
+    
+    def _obj_to_constraint(self):
+        """
+        Make consraint out of last solved objective
+        """
+        count = len(self.lp.rows)
+        self.lp.rows.add(1)
+        objval = self.lp.obj.value
+        self.lp.rows[count].bounds = objval, objval
+        for n in self._obj_matrix[0]:
+            self._const_matrix.append(n)
+        del self._obj_matrix[0]
+        del self._objective[0]
+        
+        
+    
     def variable(self, name, lower=None, upper=None):
         count = len(self.lp.cols)
         self.lp.cols.add(1)
@@ -113,25 +143,14 @@ class LinearProblem(object):
         self._vars[name] = var
         return var
 
-    
     def solve(self):
-        if self.obj_dir == 'min':
-            self.lp.obj.maximize = False
-        else:
-            self.lp.obj.maximize = True
+        self._sync_direction()
         for pri in self._objective:
-            self._copy_matrices()
+            self._sync_matrices()
             self.lp.simplex()
-            count = len(self.lp.rows)
-            self.lp.rows.add(1)
-            objval = self.lp.obj.value
-            self.lp.rows[count].bounds = objval, objval
-            for n in self._obj_matrix[0]:
-                self._const_matrix.append(n)
-            del self._obj_matrix[0]
-            del self._objective[0]
-        for c in self.lp.cols:
-            self._vars[c.name].result = c.primal
+            self._obj_to_constraint()
+        self._sync_results()
+        
             
     
     def display(self):
@@ -156,12 +175,7 @@ class LinearVariable(object):
     def del_lower(self):
         self.lower = None
 
-    
-    lower = property(get_lower,
-                     set_lower,
-                     del_lower)
-
-   
+       
     def get_upper(self):
         return self._upper
 
@@ -172,12 +186,16 @@ class LinearVariable(object):
     def del_upper(self):
         self.upper = None
 
-    
+
+    lower = property(get_lower,
+                     set_lower,
+                     del_lower)
+
+   
     upper = property(get_upper,
                      set_upper,
                      del_upper)
 
-    
 
     def _sync_bounds(self):
         for col in self.lp.cols:
