@@ -1,6 +1,5 @@
 """
-Copyright (C) 2009 Mario Romero, mariorz@gmail.com
-
+Copyright (C) 2009 Mario Romero, mario@romero.fm
 This file is part of Pytorovich.
 
 Pytorovich is free software; you can redistribute it and/or modify
@@ -22,7 +21,7 @@ import glpk
 
 #TO DO:
 
-# mixed int vars
+# make var type a property
 # report error when solve with no objective/cosnstraints
 # new class names 
 # better print_results

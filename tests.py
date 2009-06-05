@@ -1,5 +1,5 @@
 """
-Copyright (C) 2009 Mario Romero, mariorz@gmail.com
+Copyright (C) 2009 Mario Romero, mario@romero.fm
 
 This file is part of Pytorovich.
 
