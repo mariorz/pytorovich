@@ -22,6 +22,8 @@ import glpk
 
 #TO DO:
 
+# mixed int vars
+# report error when solve with no objective/cosnstraints
 # new class names 
 # better print_results
 # docs
@@ -156,13 +158,14 @@ class LinearProblem(object):
         
         
     
-    def variable(self, name, lower=None, upper=None):
+    def variable(self, name, lower=None, upper=None, type=float):
         count = len(self.lp.cols)
         self.lp.cols.add(1)
         col = self.lp.cols[count]
         col.name = name
         col.bounds = lower, upper
-        var = LinearVariable(name, lower, upper)
+        col.kind = type
+        var = LinearVariable(name, lower, upper, type)
         self._vars[name] = var
         return var
 
@@ -193,9 +196,10 @@ class LinearProblem(object):
                       
 
 class LinearVariable(object):
-    def __init__(self, name, lower=None, upper=None):
+    def __init__(self, name, lower=None, upper=None, type='float'):
         self.name = name
         self.result = None
+        self.type = type
         self._lower = lower
         self._upper = upper
         
