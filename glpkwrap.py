@@ -1,4 +1,5 @@
 """
+-------------------------------------------------------------------
 Copyright (C) 2009 Mario Romero, mario@romero.fm
 This file is part of Pytorovich.
 
@@ -14,18 +15,90 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Pytorovich.  If not, see <http://www.gnu.org/licenses/>.
+-------------------------------------------------------------------
+
+
+Example problem:
+
+http://www.cs.cornell.edu/~tomf/pyglpk/ex_ref.html
+
+maximize Z = 10x0 + 6x1 + 4x2
+
+subject to 	
+        p = x0 + x1 + x2
+	q = 10x0 + 4x1 + 5x2
+	r = 2x0 + 2x1 + 6x2
+
+and bounds of variables	
+
+−∞ < p ≤ 100 	  0 ≤ x0 < ∞
+−∞ < q ≤ 600 	  0 ≤ x1 < ∞
+−∞ < r ≤ 300 	  0 ≤ x2 < ∞
+
+
+
+Standard form:
+-----------------
+
+prob = LinearProblem("Standard Example", 'max')
+x0 = prob.variable("x0",0)
+x1 = prob.variable("x1",0)
+x2 = prob.variable("x2",0)
+
+prob.constraints = [
+   x0 + x1 + x2 <= 100,
+   10*x0 + 4*x1 + 5*x2 <= 600,
+   2*x0 + 2*x1 + 6*x2 <= 300
+]
+
+prob.objective = [10*x0 + 6*x1 + 4*x2]
+
+prob.solve()
+prob.print_results()
+
+
+
+Goal form:
+-----------------
+
+prob = LinearProblem("Goal Exammple")
+x0 = prob.variable("x0",0)
+x1 = prob.variable("x1",0)
+x2 = prob.variable("x2",0)
+n1 = prob.variable("n1",0)
+n2 = prob.variable("n2",0)
+n3 = prob.variable("n3",0)
+n4 = prob.variable("n4",0)
+p1 = prob.variable("p1",0)
+p2 = prob.variable("p2",0)
+p3 = prob.variable("p3",0)
+p4 = prob.variable("p4",0)
+
+f1 = 10*x0 + 6*x1 + 4*x2 + n1 - p1 == 1000
+f2 = x0 + x1 + x2 + n2 - p2 == 100
+f3 = 10*x0 + 4*x1 + 5*x2 + n3 - p3 == 600
+f4 = 2*x0 + 2*x1 + 6*x2 + n4 - p4 == 300
+
+prob.constraints = [f1, f2, f3, f4]
+prob.objective = [p2+p3+p4, n1]
+
+prob.solve()
+prob.print_results()
+
 """
 
 
-import glpk
-
 #TO DO:
 
-# make var type a property
+# passing lp to var object is fugly
+# test mixed type problems
 # report error when solve with no objective/cosnstraints
 # new class names 
 # better print_results
 # docs
+
+
+import glpk
 
 
 class LinearProblem(object):
@@ -164,7 +237,7 @@ class LinearProblem(object):
         col.name = name
         col.bounds = lower, upper
         col.kind = type
-        var = LinearVariable(name, lower, upper, type)
+        var = LinearVariable(self.lp, name, lower, upper, type)
         self._vars[name] = var
         return var
 
@@ -195,13 +268,32 @@ class LinearProblem(object):
                       
 
 class LinearVariable(object):
-    def __init__(self, name, lower=None, upper=None, type='float'):
+    def __init__(self, lp, name, lower=None, upper=None, type='float'):
         self.name = name
         self.result = None
-        self.type = type
+        self._lp = lp
+        self._type = type
         self._lower = lower
         self._upper = upper
         
+    def get_type(self):
+        return self._type
+
+    def set_type(self, type):
+        #add check for non av types
+        self._type = type
+        self._sync_type()
+
+    def del_type(self):
+        #float is default type
+        self._type = float
+
+    
+    type = property(get_type,
+                     set_type,
+                     del_type)
+
+
     
     def get_lower(self):
         return self._lower
@@ -212,6 +304,11 @@ class LinearVariable(object):
 
     def del_lower(self):
         self.lower = None
+
+    
+    lower = property(get_lower,
+                     set_lower,
+                     del_lower)
 
        
     def get_upper(self):
@@ -225,10 +322,6 @@ class LinearVariable(object):
         self.upper = None
 
 
-    lower = property(get_lower,
-                     set_lower,
-                     del_lower)
-
    
     upper = property(get_upper,
                      set_upper,
@@ -236,10 +329,17 @@ class LinearVariable(object):
 
 
     def _sync_bounds(self):
-        for col in self.lp.cols:
+        for col in self._lp.cols:
             if col.name == self.name:
                 col.bounds = self.lower, self.upper
                 break
+    
+    def _sync_type(self):
+        for col in self._lp.cols:
+            if col.name == self.name:
+                col.type = self.type
+                break
+
     
         
     def __add__(self, other):
