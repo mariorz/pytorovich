@@ -31,9 +31,6 @@ subject to
 
 and bounds of variables	
 
-−∞ < p ≤ 100 	  0 ≤ x0 < ∞
-−∞ < q ≤ 600 	  0 ≤ x1 < ∞
-−∞ < r ≤ 300 	  0 ≤ x2 < ∞
 
 
 
@@ -90,8 +87,9 @@ prob.print_results()
 
 #TO DO:
 
+
+# critical bug goal in solve for goal programming when tied solutions
 # passing lp to var object is fugly
-# test mixed type problems
 # report error when solve with no objective/cosnstraints
 # new class names 
 # better print_results
@@ -101,17 +99,30 @@ prob.print_results()
 import glpk
 
 
+_version__ = "0.1"
+__date__ = "2009-06-02"
+__maintainer__ = "mario romero"
+__author__ = "Mario Romero (mario@romero.fm)"
+__license__ = "GPL3"
+
+
 class LinearProblem(object):
     def __init__(self, name=None, obj_dir='min'):
         self.lp = glpk.LPX()        
         self.name = self.lp.name = name
         self.obj_dir = obj_dir
+        self.obj_vaule = None
         self._objective = []
         self._obj_matrix = []
         self._constraints = []
         self._const_matrix = []
         self._vars = {}
     
+   
+    def get_variables(self):
+        return self._vars
+
+          
     def get_constraints(self):
         return self._constraints
 
@@ -127,10 +138,6 @@ class LinearProblem(object):
     def del_constraints(self):
         self._constraints = []
         
-
-    constraints = property(get_constraints, 
-                          set_constraints, 
-                          del_constraints)
 
     def get_objective(self):
         return self._objective
@@ -148,9 +155,18 @@ class LinearProblem(object):
         self._objective = []
         self._obj_matrix = []
         
+    
+    
+    constraints = property(get_constraints, 
+                           set_constraints, 
+                           del_constraints)
+    
+    variables = property(get_variables)
+    
+    
     objective = property(get_objective, 
-                          set_objective, 
-                          del_objective)
+                         set_objective, 
+                         del_objective)
 
     
 
@@ -248,11 +264,17 @@ class LinearProblem(object):
         for pri in self._objective:
             self._sync_matrices()
             self.lp.simplex()
+            for col in self.lp.cols:
+                if col.kind is int:
+                    self.lp.integer()
+                    break
+            self.obj_value = self.lp.obj.value
             self._obj_to_constraint()
         self._sync_results()
         self._obj_matrix = mat
         self._objective = obj
         
+
             
     
     def print_results(self):
