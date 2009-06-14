@@ -18,7 +18,7 @@ along with Pytorovich.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
-from glpkwrap import LinearProblem
+from pytorovich import LpProblem
 import unittest
 
 
@@ -27,14 +27,14 @@ class AlgebraTest(unittest.TestCase):
     
   
     def test_sum_var_int(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 + 6
         self.assertEqual(f[x1.name], 1)
         self.assertEqual(f.constant, 6)
 
     def test_sum_int_var(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         f = 2 + x1
         self.assertEqual(f[x1.name], 1)
@@ -42,7 +42,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sum_exp_int(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 + 6
         g = f + 3
@@ -51,7 +51,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sum_int_exp(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         g = x1 + 4
         f = 2 + g
@@ -59,7 +59,7 @@ class AlgebraTest(unittest.TestCase):
         self.assertEqual(f.constant, 6)
 
     def test_sum_var_exp(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + 6
@@ -69,7 +69,7 @@ class AlgebraTest(unittest.TestCase):
         self.assertEqual(g.constant, 6)
 
     def test_sum_exp_var(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + 6
@@ -79,7 +79,7 @@ class AlgebraTest(unittest.TestCase):
         self.assertEqual(g.constant, 6)
 
     def test_sum_var_var(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + x2
@@ -88,7 +88,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sum_exp_exp(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         g = x1 + 4
@@ -100,7 +100,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sub_var_int(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 - 3
         self.assertEqual(f[x1.name], 1)
@@ -108,14 +108,14 @@ class AlgebraTest(unittest.TestCase):
 
     
     def test_sub_int_var(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         f = 8 - x1
         self.assertEqual(f[x1.name], -1)
         self.assertEqual(f.constant, 8)
 
     def test_sub_exp_int(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 + 6
         g = f - 3
@@ -124,7 +124,7 @@ class AlgebraTest(unittest.TestCase):
 
     
     def test_sub_int_exp(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         g = x1 + 4
         f = 2 - g
@@ -133,7 +133,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sub_var_exp(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + 6
@@ -143,7 +143,7 @@ class AlgebraTest(unittest.TestCase):
         self.assertEqual(g.constant, -6)
 
     def test_sub_exp_var(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 + 6
@@ -154,7 +154,7 @@ class AlgebraTest(unittest.TestCase):
         
    
     def test_sub_var_var(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         f = x1 - x2
@@ -164,7 +164,7 @@ class AlgebraTest(unittest.TestCase):
 
 
     def test_sub_exp_exp(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         g = x1 + 4
@@ -176,7 +176,7 @@ class AlgebraTest(unittest.TestCase):
   
 
     def test_mult_var_int(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         f = x1 * 2
         self.assertEqual(f[x1.name], 2)
@@ -184,14 +184,14 @@ class AlgebraTest(unittest.TestCase):
         
 
     def test_mult_int_var(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         f = 2 * x1
         self.assertEqual(f[x1.name], 2)
         self.assertEqual(f.constant, 0)
 
     def test_mult_exp_int(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         g = x1 + 2
         f = g * 7
@@ -200,7 +200,7 @@ class AlgebraTest(unittest.TestCase):
         
 
     def test_mult_int_exp(self):
-        prob = LinearProblem('unit test')
+        prob = LpProblem('unit test')
         x1 = prob.variable("x1",0)
         g = x1 + 4
         f = 2 * g
@@ -226,7 +226,7 @@ class ProbCasesTest(unittest.TestCase):
         p3 = 0.0
         n3 = 7.0
         """
-        prob = LinearProblem("The Paint Company Problem")
+        prob = LpProblem("The Paint Company Problem")
         x1 = prob.variable("LatexPaint",0)
         x2 = prob.variable("EmanelPaint",0)
         n1 = prob.variable("n1",0)
@@ -255,7 +255,7 @@ class ProbCasesTest(unittest.TestCase):
         x0 = 33.3333; x1 = 66.6667; x2 = 0
         """
 
-        prob = LinearProblem("Linear Programming Test Problem", 'max')
+        prob = LpProblem("Lp Programming Test Problem", 'max')
         x0 = prob.variable("x0",0)
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
@@ -280,7 +280,7 @@ class ProbCasesTest(unittest.TestCase):
         x0 = 33.3333; x1 = 66.6667; x2 = 0
         """
 
-        prob = LinearProblem("Linear Programming Test Problem")
+        prob = LpProblem("Lp Programming Test Problem")
         x0 = prob.variable("x0",0)
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
@@ -313,7 +313,7 @@ class ProbCasesTest(unittest.TestCase):
         objective function:  18.0
 
         """
-        prob = LinearProblem("Linear Programming Test Problem")
+        prob = LpProblem("Lp Programming Test Problem")
         x1 = prob.variable("x1",0)
         x2 = prob.variable("x2",0)
         n1 = prob.variable("n1",0)
@@ -340,7 +340,7 @@ class ProbCasesTest(unittest.TestCase):
         BeefPercent = 66.6667
         Total Cost of Ingredients per can =  0.9666665
         """
-        prob = LinearProblem()
+        prob = LpProblem()
         x1 = prob.variable("x1", 0)
         x2 = prob.variable("x2", 0)
         prob.objective = 0.013*x1 + 0.008*x2
@@ -363,7 +363,7 @@ class ProbCasesTest(unittest.TestCase):
         """
         pass
         """
-        prob = LinearProblem()
+        prob = LpProblem()
         x1 = prob.variable("x1", 0)
         x2 = prob.variable("x2", 0)
         
@@ -394,7 +394,7 @@ class ProbCasesTest(unittest.TestCase):
         """
         pass
         """
-        prob = LinearProblem()
+        prob = LpProblem()
         x1 = prob.variable("x1", 0)
         x2 = prob.variable("x2", 0)
         x3 = prob.variable("x3", 0)
@@ -442,7 +442,7 @@ class ProbCasesTest(unittest.TestCase):
         """
         pass
         """
-        prob = LinearProblem()
+        prob = LpProblem()
         x1 = prob.variable("x1", 0, 6)
         x2 = prob.variable("x2", 0)
         
@@ -460,14 +460,14 @@ class ProbCasesTest(unittest.TestCase):
         
         prob.objective = 2*n1 + p2
         prob.solve()
-        prob.print_results()
+        
 
 
     def test_class2_case(self):
         """
         pass
         """
-        prob = LinearProblem()
+        prob = LpProblem()
         x1 = prob.variable("x1", 0, 6)
         x2 = prob.variable("x2", 0)
         
@@ -490,7 +490,7 @@ class ProbCasesTest(unittest.TestCase):
         
         prob.objective = 200*n1 + 100*n2 + 50*n3
         prob.solve()
-        prob.print_results()
+
         
 if __name__ == '__main__':
     unittest.main()   

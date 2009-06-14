@@ -327,7 +327,6 @@ class LpProblem(object):
     
     
 
-
     def objective_to_string(self):
         string = "[ "
         for obj in self.objective:
@@ -344,12 +343,14 @@ class LpProblem(object):
     def __repr__(self):
         string = ""
         string += "Problem Name: %s\n\n" % self.name
-        string += "Minimize: %s\n" % self.objective_to_string()
+        string += "Minimize: %s\n\n" % self.objective_to_string()
         string += "Subject to:\n%s\n\n" % self.constraints_to_string()
         string += "Status: %s\n\n" % self.status
-        string += "Results:\n\n"
+        string += "Results:\n"
+        string += self.results_to_string() + "\n\n"
         
-        string += self.results_to_string()
+        #not print for goal problems?
+        string += "Objective Value: %s" % self.obj_value
 
         return string
 
