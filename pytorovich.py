@@ -88,7 +88,6 @@ prob.print_results()
 #TO DO:
 
 # passing lp to var object is fugly
-# complete print_results
 # doc
 # check case when using inopt for integer solving
 # report on candidate solutions when using MIP?
@@ -107,7 +106,9 @@ __license__ = "GPL3"
 
 
 class InputError(Exception):
-    """Exception raised for errors in the input.
+    """
+    Exception raised for errors in the input.
+    
     Attributes:
        message -- explanation of the error
     """
@@ -160,6 +161,8 @@ class LpProblem(object):
             objective = [objective]
         del self.objective
         for obj in objective:
+            if isinstance(obj, LpVariable):
+                obj = LpEquation(obj)
             self._objective.append(obj)
 
     def del_objective(self):
@@ -303,18 +306,48 @@ class LpProblem(object):
         return string
         
     def constraints_to_string(self):
-        return ""
+        string = ""
+        for const in self.constraints:
+            sorted_keys = const.keys()
+            constant = const.constant
+            rhseq = const.rhseq
+            sorted_keys.sort()
+            sorted_keys.reverse()
+            string += ' + '.join('%s * %s' % (const[key], key) 
+                        for key in sorted_keys)
+            if rhseq == 'eq':
+                string += ' == '
+            elif rhseq == 'ge':
+                string += ' >= '
+            else:
+                string += ' <= '
+
+            string += ' %s' % -constant
+            return string
+    
+    
+
 
     def objective_to_string(self):
-        return ""
+        string = "[ "
+        for obj in self.objective:
+            sorted_keys = obj.keys()
+            sorted_keys.sort()
+            sorted_keys.reverse()
+            string += ' + '.join('%s * %s' % (obj[key], key) 
+                        for key in sorted_keys)
+            string += ", "
+        string = string[:-2]    
+        string += " ]"
+        return string
     
     def __repr__(self):
         string = ""
-        string += "Problem Name: %s\n" % self.name
+        string += "Problem Name: %s\n\n" % self.name
         string += "Minimize: %s\n" % self.objective_to_string()
-        string += "Subject to:\n%s" % self.constraints_to_string()
+        string += "Subject to:\n%s\n\n" % self.constraints_to_string()
         string += "Status: %s\n\n" % self.status
-        string += "Results:\n"
+        string += "Results:\n\n"
         
         string += self.results_to_string()
 
