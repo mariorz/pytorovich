@@ -37,7 +37,7 @@ and bounds of variables
 Standard form:
 -----------------
 
-prob = LinearProblem("Standard Example", 'max')
+prob = LpProblem("Standard Example", 'max')
 x0 = prob.variable("x0",0)
 x1 = prob.variable("x1",0)
 x2 = prob.variable("x2",0)
@@ -58,7 +58,7 @@ prob.print_results()
 Goal form:
 -----------------
 
-prob = LinearProblem("Goal Exammple")
+prob = LpProblem("Goal Exammple")
 x0 = prob.variable("x0",0)
 x1 = prob.variable("x1",0)
 x2 = prob.variable("x2",0)
@@ -87,12 +87,10 @@ prob.print_results()
 
 #TO DO:
 
-
 # passing lp to var object is fugly
-# new class names 
-# better print_results
+# complete print_results
 # doc
-# check cases when using inopt for integer solving
+# check case when using inopt for integer solving
 # report on candidate solutions when using MIP?
 
 
@@ -105,26 +103,21 @@ __maintainer__ = "mario romero"
 __author__ = "Mario Romero (mario@romero.fm)"
 __license__ = "GPL3"
 
-class Error(Exception):
-    """Base class for exceptions in this module."""
-    pass
+
 
 
 class InputError(Exception):
     """Exception raised for errors in the input.
-
     Attributes:
-        expression -- input expression in which the error occurred
-        message -- explanation of the error
+       message -- explanation of the error
     """
 
-    def __init__(self, expression, message):
-        self.expression = expression
+    def __init__(self, message):
         self.message = message
 
 
 
-class LinearProblem(object):
+class LpProblem(object):
     def __init__(self, name=None, obj_dir='min'):
         self.lp = glpk.LPX()        
         self.name = self.lp.name = name
@@ -135,7 +128,7 @@ class LinearProblem(object):
         self._constraints = []
         self._const_matrix = []
         self._vars = {}
-    
+        self.status = self.lp.status
    
     def get_variables(self):
         return self._vars
@@ -145,9 +138,9 @@ class LinearProblem(object):
         return self._constraints
 
     def set_constraints(self, constraints):
-        if isinstance(constraints, LinearVariable):
+        if isinstance(constraints, LpVariable):
             constraints = [constraints]
-        elif isinstance(constraints, LinearEquation):
+        elif isinstance(constraints, LpEquation):
             constraints = [constraints]
         del self.constraints
         for const in constraints:
@@ -161,9 +154,9 @@ class LinearProblem(object):
         return self._objective
 
     def set_objective(self, objective):
-        if isinstance(objective, LinearVariable):
+        if isinstance(objective, LpVariable):
             objective = [objective]
-        elif isinstance(objective, LinearEquation):
+        elif isinstance(objective, LpEquation):
             objective = [objective]
         del self.objective
         for obj in objective:
@@ -209,8 +202,8 @@ class LinearProblem(object):
 
     def _sync_matrices(self):
         for eq in self.constraints:
-            if isinstance(eq, LinearVariable):
-                eq = LinearEquation(eq)
+            if isinstance(eq, LpVariable):
+                eq = LpEquation(eq)
             count = len(self.lp.rows)
             self.lp.rows.add(1)
             row = self.lp.rows[count]
@@ -223,8 +216,8 @@ class LinearProblem(object):
                     self._const_matrix.append(0.0)
 
         for eq in self.objective:
-            if isinstance(eq, LinearVariable):
-                eq = LinearEquation(eq)
+            if isinstance(eq, LpVariable):
+                eq = LpEquation(eq)
             obj_row = []
             for col in self.lp.cols:
                 if col.name in eq:
@@ -239,6 +232,7 @@ class LinearProblem(object):
 
 
     def _sync_results(self):
+        self.status = self.lp.status
         for c in self.lp.cols:
             self._vars[c.name].result = c.primal
     
@@ -269,15 +263,15 @@ class LinearProblem(object):
         col.name = name
         col.bounds = lower, upper
         col.kind = type
-        var = LinearVariable(self.lp, name, lower, upper, type)
+        var = LpVariable(self.lp, name, lower, upper, type)
         self._vars[name] = var
         return var
 
     def solve(self):
         if len(self.objective) == 0:
-            raise InputError("self.solve()","No objective set")
+            raise InputError("No objective set")
         if len(self.constraints) == 0:
-            raise InputError("self.solve()","No constraints set")    
+            raise InputError("No constraints set")    
 
         self._sync_direction()
         mat = self._obj_matrix[:]
@@ -294,26 +288,37 @@ class LinearProblem(object):
             self._obj_to_constraint()
             
             
-            
-        
         self._sync_results()
         self._obj_matrix = mat
         self._objective = obj
         
 
             
-    
-    def print_results(self):
-        print ""
-        print "Problem Name: %s " % self.name
-        print "Status: %s" % self.lp.status
-        print "Results:"
+    def results_to_string(self):
         sorted_keys = self._vars.keys()
 	sorted_keys.sort()
         sorted_keys.reverse()
-        print '\n'.join('%s = %s' % (key, self._vars[key].result) 
+        string = '\n'.join('%s = %s' % (key, self._vars[key].result) 
                         for key in sorted_keys)
+        return string
+        
+    def constraints_to_string(self):
+        return ""
 
+    def objective_to_string(self):
+        return ""
+    
+    def __repr__(self):
+        string = ""
+        string += "Problem Name: %s\n" % self.name
+        string += "Minimize: %s\n" % self.objective_to_string()
+        string += "Subject to:\n%s" % self.constraints_to_string()
+        string += "Status: %s\n\n" % self.status
+        string += "Results:\n"
+        
+        string += self.results_to_string()
+
+        return string
 
 
 class Callback:
@@ -342,7 +347,7 @@ class Callback:
 
                       
 
-class LinearVariable(object):
+class LpVariable(object):
     def __init__(self, lp, name, lower=None, upper=None, type='float'):
         self.name = name
         self.result = None
@@ -417,42 +422,42 @@ class LinearVariable(object):
 
         
     def __add__(self, other):
-        return LinearEquation(self) + other
+        return LpEquation(self) + other
     
     def __radd__(self, other):
-        return LinearEquation(self) + other
+        return LpEquation(self) + other
     
     def __sub__(self, other):
-        return LinearEquation(self) - other
+        return LpEquation(self) - other
     
     def __rsub__(self, other):
-        return other - LinearEquation(self)
+        return other - LpEquation(self)
     
     def __mul__(self, other):
-        return LinearEquation(self) * other
+        return LpEquation(self) * other
     
     def __rmul__(self, other):
-        return LinearEquation(self) * other
+        return LpEquation(self) * other
     
     def __pos__(self):
         return self
     
     def __neg__(self):
-        return LinearEquation(self) * -1
+        return LpEquation(self) * -1
     
     def __eq__(self, other):
-        return LinearEquation(self) == other
+        return LpEquation(self) == other
 
 
 
 
-class LinearEquation(dict):
+class LpEquation(dict):
     def __init__(self, eq=None, rhseq=None):
-        if isinstance(eq, LinearEquation):
+        if isinstance(eq, LpEquation):
             self.constant = eq.constant
             self.rhseq = rhseq
             dict.__init__(self, eq)
-        elif isinstance(eq, LinearVariable):
+        elif isinstance(eq, LpVariable):
             self.constant = 0
             self.rhseq = rhseq
             dict.__init__(self, {eq.name:1})
@@ -462,12 +467,12 @@ class LinearEquation(dict):
             dict.__init__(self)
 
     def __add__(self, other):
-        eq = LinearEquation(self)
+        eq = LpEquation(self)
         if isinstance(other, int) or isinstance(other, float):
             eq.constant += other
-        elif isinstance(other, LinearVariable):
+        elif isinstance(other, LpVariable):
             eq._addterm(other.name, 1)
-        elif isinstance(other, LinearEquation):
+        elif isinstance(other, LpEquation):
             eq.constant += other.constant
             for var,val in other.iteritems():
                 eq._addterm(var, val)
@@ -484,14 +489,14 @@ class LinearEquation(dict):
         return (-self) + other
 
     def __mul__(self, other):
-        eq = LinearEquation()
+        eq = LpEquation()
         if isinstance(other, int) or isinstance(other, float):
             eq.constant = self.constant * other
             for var,val in self.iteritems():
                 eq[var] = val * other
-        elif isinstance(other, LinearVariable):
-            return self * LinearEquation(other)
-        elif isinstance(other, LinearEquation):
+        elif isinstance(other, LpVariable):
+            return self * LpEquation(other)
+        elif isinstance(other, LpEquation):
             raise TypeError, "Non-constants cannot be multiplied"
         return eq
     
@@ -499,19 +504,19 @@ class LinearEquation(dict):
         return (self * other)
     
     def __eq__(self, other):
-        return LinearEquation(self - other, 'eq')
+        return LpEquation(self - other, 'eq')
 
     def __ge__(self, other):
-        return LinearEquation(self - other, 'ge')
+        return LpEquation(self - other, 'ge')
 
     def __le__(self, other):
-        return LinearEquation(self - other, 'le')
+        return LpEquation(self - other, 'le')
        
     def __pos__(self):
         return self
         
     def __neg__(self):
-        eq = LinearEquation(self)
+        eq = LpEquation(self)
         return eq * -1
     
     def _addterm(self, key, value):
