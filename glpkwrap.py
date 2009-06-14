@@ -87,9 +87,8 @@ prob.print_results()
 
 #TO DO:
 
-# critical BUG goal in solve for goal programming when tied solutions
+
 # passing lp to var object is fugly
-# report error when solve with no objective/cosnstraints
 # new class names 
 # better print_results
 # doc
@@ -105,6 +104,24 @@ __date__ = "2009-06-02"
 __maintainer__ = "mario romero"
 __author__ = "Mario Romero (mario@romero.fm)"
 __license__ = "GPL3"
+
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+
+class InputError(Exception):
+    """Exception raised for errors in the input.
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, expression, message):
+        self.expression = expression
+        self.message = message
+
 
 
 class LinearProblem(object):
@@ -242,7 +259,6 @@ class LinearProblem(object):
         self.lp.rows[count].bounds = objval, objval
         for n in self._obj_matrix[0]:
             self._const_matrix.append(n)
-            #print n
         del self._obj_matrix[0]
         #del self._objective[0]
     
@@ -258,6 +274,11 @@ class LinearProblem(object):
         return var
 
     def solve(self):
+        if len(self.objective) == 0:
+            raise InputError("self.solve()","No objective set")
+        if len(self.constraints) == 0:
+            raise InputError("self.solve()","No constraints set")    
+
         self._sync_direction()
         mat = self._obj_matrix[:]
         obj = self._objective[:]
@@ -317,10 +338,7 @@ class Callback:
     def bingo(self, tree):
         # some code to monitor the situation her
         pass
-        #print "obj; %s" % tree.lp.obj.value
-        #for c in tree.lp.cols:
-        #    print "%s; %s" % (c.name, int(c.primal))
-        #print "\n\n"
+        
 
                       
 
