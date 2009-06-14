@@ -87,19 +87,20 @@ prob.print_results()
 
 #TO DO:
 
-
-# critical bug goal in solve for goal programming when tied solutions
+# critical BUG goal in solve for goal programming when tied solutions
 # passing lp to var object is fugly
 # report error when solve with no objective/cosnstraints
 # new class names 
 # better print_results
-# docs
+# doc
+# check cases when using inopt for integer solving
+# report on candidate solutions when using MIP?
 
 
 import glpk
 
 
-_version__ = "0.1"
+__version__ = "0.1"
 __date__ = "2009-06-02"
 __maintainer__ = "mario romero"
 __author__ = "Mario Romero (mario@romero.fm)"
@@ -241,10 +242,9 @@ class LinearProblem(object):
         self.lp.rows[count].bounds = objval, objval
         for n in self._obj_matrix[0]:
             self._const_matrix.append(n)
+            #print n
         del self._obj_matrix[0]
-        del self._objective[0]
-        
-        
+        #del self._objective[0]
     
     def variable(self, name, lower=None, upper=None, type=float):
         count = len(self.lp.cols)
@@ -261,15 +261,20 @@ class LinearProblem(object):
         self._sync_direction()
         mat = self._obj_matrix[:]
         obj = self._objective[:]
+        
         for pri in self._objective:
             self._sync_matrices()
             self.lp.simplex()
             for col in self.lp.cols:
                 if col.kind is int:
-                    self.lp.integer()
+                    self.lp.integer(callback=Callback())
                     break
             self.obj_value = self.lp.obj.value
             self._obj_to_constraint()
+            
+            
+            
+        
         self._sync_results()
         self._obj_matrix = mat
         self._objective = obj
@@ -287,6 +292,36 @@ class LinearProblem(object):
         sorted_keys.reverse()
         print '\n'.join('%s = %s' % (key, self._vars[key].result) 
                         for key in sorted_keys)
+
+
+
+class Callback:
+    def select(self, tree):
+        # some code to select subproblems here...
+        pass
+    def prepro(self, tree):
+        # some code for preprocessing here...
+        pass
+    def rowgen(self, tree):
+        # some code for providing constraints here...
+        pass
+    def heur(self, tree):
+        # some code for providing heuristic solutions here...
+        pass
+    def cutgen(self, tree):
+        # some code for providing constraints here...
+        pass
+    def branch(self, tree):
+        # some code to choose a variable to branch on here...
+        pass
+    def bingo(self, tree):
+        # some code to monitor the situation her
+        pass
+        #print "obj; %s" % tree.lp.obj.value
+        #for c in tree.lp.cols:
+        #    print "%s; %s" % (c.name, int(c.primal))
+        #print "\n\n"
+
                       
 
 class LinearVariable(object):
@@ -362,7 +397,6 @@ class LinearVariable(object):
                 col.type = self.type
                 break
 
-    
         
     def __add__(self, other):
         return LinearEquation(self) + other
@@ -390,6 +424,8 @@ class LinearVariable(object):
     
     def __eq__(self, other):
         return LinearEquation(self) == other
+
+
 
 
 class LinearEquation(dict):
