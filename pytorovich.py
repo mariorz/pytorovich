@@ -18,9 +18,12 @@ along with Pytorovich.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------
 
 
-Example problem:
 
+------------------------
+Example problem:
 http://www.cs.cornell.edu/~tomf/pyglpk/ex_ref.html
+------------------------
+
 
 maximize Z = 10x0 + 6x1 + 4x2
 
@@ -31,11 +34,16 @@ subject to
 
 and bounds of variables	
 
+-inf < p <= 100   0 <= x0 < inf
+-inf < q <= 600   0 <= x1 < inf
+-inf < r <= 300   0 <= x2 < inf
+
+
 
 
 
 Standard form:
------------------
+------------------------
 
 prob = LpProblem("Standard Example", 'max')
 x0 = prob.variable("x0",0)
@@ -51,12 +59,12 @@ prob.constraints = [
 prob.objective = [10*x0 + 6*x1 + 4*x2]
 
 prob.solve()
-prob.print_results()
+print prob
 
 
 
 Goal form:
------------------
+------------------------
 
 prob = LpProblem("Goal Exammple")
 x0 = prob.variable("x0",0)
@@ -80,27 +88,66 @@ prob.constraints = [f1, f2, f3, f4]
 prob.objective = [p2+p3+p4, n1]
 
 prob.solve()
-prob.print_results()
+print prob
+
+
+
+
+
+
+------------------------
+Example Problem from: 
+http://xkcd.com/287/
+"knapsack problem"
+------------------------
+
+
+
+MIP form:
+------------------------
+
+prob = LpProblem("Integer Programming Problem")
+
+items = ( ('MIXED FRUIT',   2.15),
+          ('FRENCH FRIES',  2.75),
+          ('SIDE SALAD',    3.35),
+          ('HOT WINGS',     3.55),
+          ('MOZZ STICKS',   4.20),
+          ('SAMPLER PLATE', 5.80),
+          ('BARBEQUE',      6.55) )
+
+exactcost = 15.05
+
+f = 0
+for i in range(len(items)):
+    locals()['x'+str(i)] = ''
+    x = locals()['x'+str(i)] 
+    x = prob.variable(items[i][0],0,None,int)
+    f += items[i][1]*x
+
+prob.objective = [f]
+prob.constraints = [f == exactcost]
+prob.solve()
+print prob
+
+
 
 """
 
 
 #TO DO:
 
-# doc
 # check case when using inopt for integer solving
-# report on candidate solutions when using MIP?
 
 
 import glpk
 
 
-__version__ = "0.1"
-__date__ = "2009-06-02"
-__maintainer__ = "mario romero"
+__version__ = "0.11"
+__date__ = "2009-06-14"
+__maintainer__ = "Mario Romero"
 __author__ = "Mario Romero (mario@romero.fm)"
 __license__ = "GPL3"
-
 
 
 
@@ -118,17 +165,39 @@ class InputError(Exception):
 
 
 class LpProblem(object):
+    """
+    A Linear Programming Problem
+
+    Attributes:
+       lpx -- pyglpk problem instance
+       name -- problem name
+       obj_dir -- objective function opt direction*
+             -'min': minimize
+             -'max': maximize
+       obj_value -- objective function value*
+       status -- problem status*
+             -'opt': optimal   
+             -'indef': indefinite
+    
+    Properties:
+       variables -- LP Variables in problem instance
+       constraints -- Problem constraints
+       objective -- Problem objective(s)
+
+    """
+    
     def __init__(self, name=None, obj_dir='min'):
         self.lpx = glpk.LPX()        
         self.name = self.lpx.name = name
         self.obj_dir = obj_dir
         self.obj_vaule = None
+        self.status = self.lpx.status
         self._objective = []
         self._obj_matrix = []
         self._constraints = []
         self._const_matrix = []
         self._vars = {}
-        self.status = self.lpx.status
+        
    
     def get_variables(self):
         return self._vars
@@ -161,13 +230,11 @@ class LpProblem(object):
 
     def set_objective(self, objective):
         if isinstance(objective, LpVariable):
-            objective = [objective]
+            objective = [LpEquation(objective)]
         elif isinstance(objective, LpEquation):
             objective = [objective]
         del self.objective
         for obj in objective:
-            if isinstance(obj, LpVariable):
-                obj = LpEquation(obj)
             self._objective.append(obj)
 
     def del_objective(self):
@@ -380,6 +447,22 @@ class Callback:
                       
 
 class LpVariable(object):
+    """
+    A Linear Programming Variable
+
+    Attributes:
+       name -- variable name
+       result -- optimal var value (None if unsolved)
+       lp -- enclosing lp problem
+    
+    Properties:
+       type -- variable type*
+             -'float'
+             -'int'
+       lower -- var lower bound
+       upper -- var upper bound
+
+    """
     def __init__(self, lp, name, lower=None, upper=None, type='float'):
         self.name = name
         self.result = None
@@ -484,6 +567,16 @@ class LpVariable(object):
 
 
 class LpEquation(dict):
+    """
+    A Linear Equation
+
+    Attributes:
+       constant -- equation constant value
+       rhseq -- right hand side equality symbol
+             - 'ge': greater or equal (>=)
+             - 'le': less or equal (<=)
+             - 'eq': equal (==)
+    """
     def __init__(self, eq=None, rhseq=None):
         if isinstance(eq, LpEquation):
             self.constant = eq.constant
