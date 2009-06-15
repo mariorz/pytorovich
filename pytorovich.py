@@ -118,15 +118,10 @@ items = ( ('MIXED FRUIT',   2.15),
 
 exactcost = 15.05
 
-f = 0
-for i in range(len(items)):
-    locals()['x'+str(i)] = ''
-    x = locals()['x'+str(i)] 
-    x = prob.variable(items[i][0],0,None,int)
-    f += items[i][1]*x
+f = [prob.variable(item[0],0,None,int) * item[1] for item in items]
 
-prob.objective = [f]
-prob.constraints = [f == exactcost]
+prob.objective = sum(f)
+prob.constraints = sum(f) == exactcost
 prob.solve()
 print prob
 
