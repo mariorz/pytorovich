@@ -87,7 +87,6 @@ prob.print_results()
 
 #TO DO:
 
-# passing lp to var object is fugly
 # doc
 # check case when using inopt for integer solving
 # report on candidate solutions when using MIP?
@@ -120,8 +119,8 @@ class InputError(Exception):
 
 class LpProblem(object):
     def __init__(self, name=None, obj_dir='min'):
-        self.lp = glpk.LPX()        
-        self.name = self.lp.name = name
+        self.lpx = glpk.LPX()        
+        self.name = self.lpx.name = name
         self.obj_dir = obj_dir
         self.obj_vaule = None
         self._objective = []
@@ -129,12 +128,14 @@ class LpProblem(object):
         self._constraints = []
         self._const_matrix = []
         self._vars = {}
-        self.status = self.lp.status
+        self.status = self.lpx.status
    
     def get_variables(self):
         return self._vars
 
-          
+    variables = property(get_variables)
+    
+    
     def get_constraints(self):
         return self._constraints
 
@@ -150,6 +151,10 @@ class LpProblem(object):
     def del_constraints(self):
         self._constraints = []
         
+    
+    constraints = property(get_constraints, 
+                           set_constraints, 
+                           del_constraints)
 
     def get_objective(self):
         return self._objective
@@ -170,14 +175,7 @@ class LpProblem(object):
         self._obj_matrix = []
         
     
-    
-    constraints = property(get_constraints, 
-                           set_constraints, 
-                           del_constraints)
-    
-    variables = property(get_variables)
-    
-    
+       
     objective = property(get_objective, 
                          set_objective, 
                          del_objective)
@@ -207,12 +205,12 @@ class LpProblem(object):
         for eq in self.constraints:
             if isinstance(eq, LpVariable):
                 eq = LpEquation(eq)
-            count = len(self.lp.rows)
-            self.lp.rows.add(1)
-            row = self.lp.rows[count]
+            count = len(self.lpx.rows)
+            self.lpx.rows.add(1)
+            row = self.lpx.rows[count]
             row.name, eq = self._get_name(eq)
             self._set_row_bounds(row, eq.rhseq, -eq.constant)
-            for col in self.lp.cols:
+            for col in self.lpx.cols:
                 if col.name in eq:
                     self._const_matrix.append(eq[col.name])
                 else:
@@ -222,7 +220,7 @@ class LpProblem(object):
             if isinstance(eq, LpVariable):
                 eq = LpEquation(eq)
             obj_row = []
-            for col in self.lp.cols:
+            for col in self.lpx.cols:
                 if col.name in eq:
                     obj_row.append(eq[col.name])
                 else:
@@ -230,43 +228,43 @@ class LpProblem(object):
 
             self._obj_matrix.append(obj_row)
             
-        self.lp.matrix = self._const_matrix
-        self.lp.obj[:] = self._obj_matrix[0]
+        self.lpx.matrix = self._const_matrix
+        self.lpx.obj[:] = self._obj_matrix[0]
 
 
     def _sync_results(self):
-        self.status = self.lp.status
-        for c in self.lp.cols:
+        self.status = self.lpx.status
+        for c in self.lpx.cols:
             self._vars[c.name].result = c.primal
     
     def _sync_direction(self):
         if self.obj_dir == 'min':
-            self.lp.obj.maximize = False
+            self.lpx.obj.maximize = False
         else:
-            self.lp.obj.maximize = True
+            self.lpx.obj.maximize = True
         
     
     def _obj_to_constraint(self):
         """
         Make consraint out of last solved objective
         """
-        count = len(self.lp.rows)
-        self.lp.rows.add(1)
-        objval = self.lp.obj.value
-        self.lp.rows[count].bounds = objval, objval
+        count = len(self.lpx.rows)
+        self.lpx.rows.add(1)
+        objval = self.lpx.obj.value
+        self.lpx.rows[count].bounds = objval, objval
         for n in self._obj_matrix[0]:
             self._const_matrix.append(n)
         del self._obj_matrix[0]
         #del self._objective[0]
     
     def variable(self, name, lower=None, upper=None, type=float):
-        count = len(self.lp.cols)
-        self.lp.cols.add(1)
-        col = self.lp.cols[count]
+        count = len(self.lpx.cols)
+        self.lpx.cols.add(1)
+        col = self.lpx.cols[count]
         col.name = name
         col.bounds = lower, upper
         col.kind = type
-        var = LpVariable(self.lp, name, lower, upper, type)
+        var = LpVariable(self.lpx, name, lower, upper, type)
         self._vars[name] = var
         return var
 
@@ -282,12 +280,12 @@ class LpProblem(object):
         
         for pri in self._objective:
             self._sync_matrices()
-            self.lp.simplex()
-            for col in self.lp.cols:
+            self.lpx.simplex()
+            for col in self.lpx.cols:
                 if col.kind is int:
-                    self.lp.integer(callback=Callback())
+                    self.lpx.integer(callback=Callback())
                     break
-            self.obj_value = self.lp.obj.value
+            self.obj_value = self.lpx.obj.value
             self._obj_to_constraint()
             
             
