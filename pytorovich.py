@@ -27,12 +27,12 @@ http://www.cs.cornell.edu/~tomf/pyglpk/ex_ref.html
 
 maximize Z = 10x0 + 6x1 + 4x2
 
-subject to 	
+subject to: 	
         p = x0 + x1 + x2
 	q = 10x0 + 4x1 + 5x2
 	r = 2x0 + 2x1 + 6x2
 
-and bounds of variables	
+and bounds of variables:	
 
 -inf < p <= 100   0 <= x0 < inf
 -inf < q <= 600   0 <= x1 < inf
@@ -96,19 +96,14 @@ print prob
 
 
 ------------------------
-Example Problem from: 
+Knapsack Problem
+Example from: 
 http://xkcd.com/287/
-"knapsack problem"
-------------------------
-
-
-
-MIP form:
 ------------------------
 
 prob = LpProblem("Integer Programming Problem")
 
-items = ( ('MIXED FRUIT',   2.15),
+items = ( ('MIXED FRUIT',   2.15),0
           ('FRENCH FRIES',  2.75),
           ('SIDE SALAD',    3.35),
           ('HOT WINGS',     3.55),
@@ -118,10 +113,11 @@ items = ( ('MIXED FRUIT',   2.15),
 
 exactcost = 15.05
 
-f = [prob.variable(item[0],0,None,int) * item[1] for item in items]
+f = [prob.variable(item[0], 0, None, int) * 
+     item[1] for item in items]
 
-prob.objective = sum(f)
-prob.constraints = sum(f) == exactcost
+prob.objective = [sum(f)]
+prob.constraints = [sum(f) == exactcost]
 prob.solve()
 print prob
 
@@ -133,10 +129,8 @@ print prob
 #TO DO:
 
 # check case when using inopt for integer solving
-
-
-import glpk
-
+# prob.__repr__ only works on complete problems
+# unfeasable solutions just return wrong (see einstein's pizzle)
 
 __version__ = "0.11"
 __date__ = "2009-06-14"
@@ -144,6 +138,8 @@ __maintainer__ = "Mario Romero"
 __author__ = "Mario Romero (mario@romero.fm)"
 __license__ = "GPL3"
 
+
+import glpk
 
 
 class InputError(Exception):
@@ -174,12 +170,21 @@ class LpProblem(object):
              -'opt': optimal   
              -'indef': indefinite
     
+    
     Properties:
        variables -- LP Variables in problem instance
        constraints -- Problem constraints
        objective -- Problem objective(s)
 
-    """
+    
+    Private Attributes:
+       _objective -- LP problem objective in dict form 
+       _obj_matrix -- LP problem objective in matrix form
+       _constraints -- Problem constraints (dict form) 
+       _const_matrix -- Problem constraints (matrix form)
+       _vars -- Problem vars declared
+
+   """
     
     def __init__(self, name=None, obj_dir='min'):
         self.lpx = glpk.LPX()        
@@ -271,7 +276,12 @@ class LpProblem(object):
             self.lpx.rows.add(1)
             row = self.lpx.rows[count]
             row.name, eq = self._get_name(eq)
-            self._set_row_bounds(row, eq.rhseq, -eq.constant)
+            try:
+                self._set_row_bounds(row, eq.rhseq, -eq.constant)
+            except:
+                print "HERE"
+                print eq
+                exit()
             for col in self.lpx.cols:
                 if col.name in eq:
                     self._const_matrix.append(eq[col.name])
@@ -304,6 +314,7 @@ class LpProblem(object):
             self.lpx.obj.maximize = False
         else:
             self.lpx.obj.maximize = True
+            
         
     
     def _obj_to_constraint(self):
@@ -344,9 +355,10 @@ class LpProblem(object):
             self._sync_matrices()
             self.lpx.simplex()
             for col in self.lpx.cols:
-                if col.kind is int:
-                    self.lpx.integer(callback=Callback())
+                if col.kind is not float:
+                    self.lpx.integer()
                     break
+                                    
             self.obj_value = self.lpx.obj.value
             self._obj_to_constraint()
             
@@ -382,8 +394,8 @@ class LpProblem(object):
             else:
                 string += ' <= '
 
-            string += ' %s' % -constant
-            return string
+            string += ' %s\n' % -constant
+        return string
     
     
 
@@ -403,7 +415,10 @@ class LpProblem(object):
     def __repr__(self):
         string = ""
         string += "Problem Name: %s\n\n" % self.name
-        string += "Minimize: %s\n\n" % self.objective_to_string()
+        if self.obj_dir == 'max':
+            string += "Maximize: %s\n\n" % self.objective_to_string()
+        else:
+            string += "Minimize: %s\n\n" % self.objective_to_string()
         string += "Subject to:\n%s\n\n" % self.constraints_to_string()
         string += "Status: %s\n\n" % self.status
         string += "Results:\n"
@@ -557,6 +572,12 @@ class LpVariable(object):
     
     def __eq__(self, other):
         return LpEquation(self) == other
+
+    def __ge__(self, other):
+        return LpEquation(self) >= other
+
+    def __le__(self, other):
+        return LpEquation(self) <= other
 
 
 
