@@ -44,6 +44,7 @@ and bounds of variables:
 
 Standard form:
 ------------------------
+from pytorovich import LpProblem
 
 prob = LpProblem("Standard Example", 'max')
 x0 = prob.variable("x0",0)
@@ -94,16 +95,16 @@ print prob
 
 
 
-
 ------------------------
 Knapsack Problem
 Example from: 
 http://xkcd.com/287/
 ------------------------
+from pytorovich import LpProblem
 
 prob = LpProblem("Integer Programming Problem")
 
-items = ( ('MIXED FRUIT',   2.15),0
+items = ( ('MIXED FRUIT',   2.15),
           ('FRENCH FRIES',  2.75),
           ('SIDE SALAD',    3.35),
           ('HOT WINGS',     3.55),
@@ -116,11 +117,10 @@ exactcost = 15.05
 f = [prob.variable(item[0], 0, None, int) * 
      item[1] for item in items]
 
-prob.objective = [sum(f)]
-prob.constraints = [sum(f) == exactcost]
+prob.objective = sum(f)
+prob.constraints = sum(f) == exactcost
 prob.solve()
 print prob
-
 
 
 """
@@ -128,12 +128,12 @@ print prob
 
 #TO DO:
 
-# check case when using inopt for integer solving
-# prob.__repr__ only works on complete problems
-# unfeasable solutions just return wrong (see einstein's pizzle)
+# research using double comparrissons for constraints
+
+
 
 __version__ = "0.11"
-__date__ = "2009-06-14"
+__date__ = "2009-06-26"
 __maintainer__ = "Mario Romero"
 __author__ = "Mario Romero (mario@romero.fm)"
 __license__ = "GPL3"
@@ -190,7 +190,7 @@ class LpProblem(object):
         self.lpx = glpk.LPX()        
         self.name = self.lpx.name = name
         self.obj_dir = obj_dir
-        self.obj_vaule = None
+        self.obj_value = None
         self.status = self.lpx.status
         self._objective = []
         self._obj_matrix = []
@@ -341,7 +341,7 @@ class LpProblem(object):
         self._vars[name] = var
         return var
 
-    def solve(self):
+    def solve(self, **kwds):
         if len(self.objective) == 0:
             raise InputError("No objective set")
         if len(self.constraints) == 0:
@@ -353,10 +353,30 @@ class LpProblem(object):
         
         for pri in self._objective:
             self._sync_matrices()
-            self.lpx.simplex()
+
+                            
+            method = None
+            if 'method' in kwds:
+                method = kwds['method']
+            
+            integer = None
+            if 'integer' in kwds:
+                integer = kwds['integer']
+            
+            if method == 'interior':
+                self.lpx.interior()
+            elif method == 'exact':
+                self.lpx.exact()
+            else:
+                self.lpx.simplex()
+
+
             for col in self.lpx.cols:
                 if col.kind is not float:
-                    self.lpx.integer()
+                    if integer == 'intopt':
+                        self.lpx.intopt()
+                    else:
+                        self.lpx.integer()
                     break
                                     
             self.obj_value = self.lpx.obj.value
@@ -414,20 +434,30 @@ class LpProblem(object):
     
     def __repr__(self):
         string = ""
-        string += "Problem Name: %s\n\n" % self.name
-        if self.obj_dir == 'max':
-            string += "Maximize: %s\n\n" % self.objective_to_string()
-        else:
-            string += "Minimize: %s\n\n" % self.objective_to_string()
-        string += "Subject to:\n%s\n\n" % self.constraints_to_string()
+        if self.name:
+            string += "Problem Name: %s\n\n" % self.name
+        
+        if self.objective:
+            if self.obj_dir == 'max':
+                string += "Maximize: %s\n\n" % self.objective_to_string()
+            else:
+                string += "Minimize: %s\n\n" % self.objective_to_string()
+        
+        
+        if self.constraints:
+            string += "Subject to:\n%s\n\n" % self.constraints_to_string()
+        
         string += "Status: %s\n\n" % self.status
         string += "Results:\n"
         string += self.results_to_string() + "\n\n"
         
         #not print for goal problems?
-        string += "Objective Value: %s" % self.obj_value
+        if self.obj_value:
+            string += "Objective Value: %s" % self.obj_value
 
         return string
+
+
 
 
 class Callback:
