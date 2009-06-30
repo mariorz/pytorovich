@@ -126,10 +126,6 @@ print prob
 """
 
 
-#TO DO:
-
-# research using double comparrissons for constraints
-
 
 
 __version__ = "0.11"
@@ -213,10 +209,30 @@ class LpProblem(object):
             constraints = [constraints]
         elif isinstance(constraints, LpEquation):
             constraints = [constraints]
+
+        
         del self.constraints
         for const in constraints:
             self._constraints.append(const)
-    
+
+            """
+for eq in constraints:
+            if isinstance(eq, LpVariable):
+                eq = LpEquation(eq)
+        
+            count = len(self.lpx.rows)
+            self.lpx.rows.add(1)
+            row = self.lpx.rows[count]
+            row.name, eq = self._get_name(eq)
+
+            try:
+                self._set_row_bounds(row, eq.rhseq, -eq.constant)
+            except:
+                print "HERE"
+                print eq
+                exit()
+        
+                """    
     def del_constraints(self):
         self._constraints = []
         
@@ -269,12 +285,15 @@ class LpProblem(object):
 
 
     def _sync_matrices(self):
+        #bug: adds existing constrtaings again in mult objective
+        #problems
         for eq in self.constraints:
             if isinstance(eq, LpVariable):
                 eq = LpEquation(eq)
-            count = len(self.lpx.rows)
-            self.lpx.rows.add(1)
-            row = self.lpx.rows[count]
+            
+            rowid = self.lpx.rows.add(1)
+            row = self.lpx.rows[rowid]
+            
             row.name, eq = self._get_name(eq)
             try:
                 self._set_row_bounds(row, eq.rhseq, -eq.constant)
@@ -282,12 +301,13 @@ class LpProblem(object):
                 print "HERE"
                 print eq
                 exit()
-            for col in self.lpx.cols:
-                if col.name in eq:
-                    self._const_matrix.append(eq[col.name])
-                else:
-                    self._const_matrix.append(0.0)
-
+            
+            
+            sparsemat = [term for term in eq.iteritems()]
+            row.matrix = sparsemat     
+           
+            
+           
         for eq in self.objective:
             if isinstance(eq, LpVariable):
                 eq = LpEquation(eq)
@@ -298,14 +318,22 @@ class LpProblem(object):
                 else:
                     obj_row.append(0.0)
 
+                    
             self._obj_matrix.append(obj_row)
-            
-        self.lpx.matrix = self._const_matrix
+            ##del self.objective[0]
+            #break
+        
+            #sparsemat = [term for term in eq.values()]
+            #self.lpx.obj[:] = sparsemat 
+        #self.lpx.matrix = self._const_matrix
         self.lpx.obj[:] = self._obj_matrix[0]
+        
 
+        
 
     def _sync_results(self):
         self.status = self.lpx.status
+        self.obj_vaule = self.lpx.obj.value
         for c in self.lpx.cols:
             self._vars[c.name].result = c.primal
     
@@ -321,15 +349,23 @@ class LpProblem(object):
         """
         Make consraint out of last solved objective
         """
-        count = len(self.lpx.rows)
-        self.lpx.rows.add(1)
+
+        rowid = self.lpx.rows.add(1)
         objval = self.lpx.obj.value
-        self.lpx.rows[count].bounds = objval, objval
-        for n in self._obj_matrix[0]:
-            self._const_matrix.append(n)
+        row = self.lpx.rows[rowid]
+        row.bounds = objval, objval
+
+        #for n in self._obj_matrix[0]:
+        #    self._const_matrix.append(n)
+        
+        
+
+        objiter = range(len(self._obj_matrix[0]))
+        sparsemat = [(i,  self._obj_matrix[0][i]) for i in objiter]
+        row.matrix = sparsemat     
         del self._obj_matrix[0]
         #del self._objective[0]
-    
+
     def variable(self, name, lower=None, upper=None, type=float):
         count = len(self.lpx.cols)
         self.lpx.cols.add(1)
