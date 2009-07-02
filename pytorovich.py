@@ -60,7 +60,10 @@ prob.constraints = [
 prob.objective = [10*x0 + 6*x1 + 4*x2]
 
 prob.solve()
-print prob
+
+for key, val in prob.variables.iteritems():
+   "%s: %s" % (key, val.result)
+
 
 
 
@@ -89,9 +92,9 @@ prob.constraints = [f1, f2, f3, f4]
 prob.objective = [p2+p3+p4, n1]
 
 prob.solve()
-print prob
 
-
+for key, val in prob.variables.iteritems():
+   "%s: %s" % (key, val.result)
 
 
 
@@ -120,7 +123,9 @@ f = [prob.variable(item[0], 0, None, int) *
 prob.objective = sum(f)
 prob.constraints = sum(f) == exactcost
 prob.solve()
-print prob
+
+for key, val in prob.variables.iteritems():
+   "%s: %s" % (key, val.result)
 
 
 """
@@ -128,14 +133,19 @@ print prob
 
 
 
-__version__ = "0.11"
-__date__ = "2009-06-26"
+__version__ = "0.1"
+__date__ = "2009-06-29"
 __maintainer__ = "Mario Romero"
 __author__ = "Mario Romero (mario@romero.fm)"
 __license__ = "GPL3"
 
 
 import glpk
+
+
+# TO DO
+
+# solve options
 
 
 class InputError(Exception):
@@ -158,11 +168,11 @@ class LpProblem(object):
     Attributes:
        lpx -- pyglpk problem instance
        name -- problem name
-       obj_dir -- objective function opt direction*
-             -'min': minimize
+       obj_dir -- objective function optimization direction
+             -'min': minimize (default)
              -'max': maximize
        obj_value -- objective function value*
-       status -- problem status*
+       status -- problem status
              -'opt': optimal   
              -'indef': indefinite
     
@@ -171,13 +181,11 @@ class LpProblem(object):
        variables -- LP Variables in problem instance
        constraints -- Problem constraints
        objective -- Problem objective(s)
-
     
     Private Attributes:
        _objective -- LP problem objective in dict form 
-       _obj_matrix -- LP problem objective in matrix form
-       _constraints -- Problem constraints (dict form) 
-       _const_matrix -- Problem constraints (matrix form)
+       _obj_matrix -- LP problem objective (vector form)
+       _constraints -- Problem constraints (list of dicts) 
        _vars -- Problem vars declared
 
    """
@@ -191,7 +199,6 @@ class LpProblem(object):
         self._objective = []
         self._obj_matrix = []
         self._constraints = []
-        self._const_matrix = []
         self._vars = {}
         
    
@@ -214,25 +221,7 @@ class LpProblem(object):
         del self.constraints
         for const in constraints:
             self._constraints.append(const)
-
-            """
-for eq in constraints:
-            if isinstance(eq, LpVariable):
-                eq = LpEquation(eq)
-        
-            count = len(self.lpx.rows)
-            self.lpx.rows.add(1)
-            row = self.lpx.rows[count]
-            row.name, eq = self._get_name(eq)
-
-            try:
-                self._set_row_bounds(row, eq.rhseq, -eq.constant)
-            except:
-                print "HERE"
-                print eq
-                exit()
-        
-                """    
+  
     def del_constraints(self):
         self._constraints = []
         
@@ -263,9 +252,11 @@ for eq in constraints:
                          set_objective, 
                          del_objective)
 
-    
 
     def _get_name(self, eq):
+        # if eq has a name set, it will be a touple
+        # in which the first value is the actual
+        # equation
          try:
             name = eq[1]
             eq = eq[0]
@@ -284,30 +275,28 @@ for eq in constraints:
         
 
 
-    def _sync_matrices(self):
-        #bug: adds existing constrtaings again in mult objective
-        #problems
+    def _sync_constraints(self, add_one=False):
         for eq in self.constraints:
             if isinstance(eq, LpVariable):
                 eq = LpEquation(eq)
             
             rowid = self.lpx.rows.add(1)
             row = self.lpx.rows[rowid]
-            
             row.name, eq = self._get_name(eq)
-            try:
-                self._set_row_bounds(row, eq.rhseq, -eq.constant)
-            except:
-                print "HERE"
-                print eq
-                exit()
-            
-            
+                     
+            self._set_row_bounds(row, eq.rhseq, -eq.constant)
+           
+            # constraint matrix implementation of glpx object 
+            # is spase e.g. [(0,4),(1,2),(3,0)... (n, 10]
+            # LpEquation objects are also spase
             sparsemat = [term for term in eq.iteritems()]
-            row.matrix = sparsemat     
+            row.matrix = sparsemat
            
             
-           
+                    
+
+
+    def _sync_objectives(self):
         for eq in self.objective:
             if isinstance(eq, LpVariable):
                 eq = LpEquation(eq)
@@ -320,12 +309,7 @@ for eq in constraints:
 
                     
             self._obj_matrix.append(obj_row)
-            ##del self.objective[0]
-            #break
-        
-            #sparsemat = [term for term in eq.values()]
-            #self.lpx.obj[:] = sparsemat 
-        #self.lpx.matrix = self._const_matrix
+           
         self.lpx.obj[:] = self._obj_matrix[0]
         
 
@@ -355,16 +339,16 @@ for eq in constraints:
         row = self.lpx.rows[rowid]
         row.bounds = objval, objval
 
-        #for n in self._obj_matrix[0]:
-        #    self._const_matrix.append(n)
-        
-        
-
         objiter = range(len(self._obj_matrix[0]))
         sparsemat = [(i,  self._obj_matrix[0][i]) for i in objiter]
         row.matrix = sparsemat     
+        
+        # delete the objective that has just been optimized
+        # so that _sync_matrices(), copies the next objective
+        # to the lpx objective matrix
         del self._obj_matrix[0]
-        #del self._objective[0]
+
+
 
     def variable(self, name, lower=None, upper=None, type=float):
         count = len(self.lpx.cols)
@@ -379,17 +363,19 @@ for eq in constraints:
 
     def solve(self, **kwds):
         if len(self.objective) == 0:
-            raise InputError("No objective set")
+            raise InputError("No objective has been set.")
         if len(self.constraints) == 0:
-            raise InputError("No constraints set")    
+            raise InputError("No constraints have been set.")    
 
         self._sync_direction()
-        mat = self._obj_matrix[:]
-        obj = self._objective[:]
+        self._sync_objectives()
+
+        cb = None
+        if 'callback' in kwds:
+            cb = kwds['callback']
         
         for pri in self._objective:
-            self._sync_matrices()
-
+            self._sync_constraints(True)
                             
             method = None
             if 'method' in kwds:
@@ -405,119 +391,28 @@ for eq in constraints:
                 self.lpx.exact()
             else:
                 self.lpx.simplex()
-
-
+            
+            # FIX
+            # this check fails if columns
+            # are floats but the user
+            # asks for an integer solution
             for col in self.lpx.cols:
                 if col.kind is not float:
                     if integer == 'intopt':
                         self.lpx.intopt()
                     else:
-                        self.lpx.integer()
+                        self.lpx.integer(callback=cb)
                     break
                                     
             self.obj_value = self.lpx.obj.value
             self._obj_to_constraint()
             
-            
         self._sync_results()
-        self._obj_matrix = mat
-        self._objective = obj
-        
+                
 
             
-    def results_to_string(self):
-        sorted_keys = self._vars.keys()
-	sorted_keys.sort()
-        sorted_keys.reverse()
-        string = '\n'.join('%s = %s' % (key, self._vars[key].result) 
-                        for key in sorted_keys)
-        return string
-        
-    def constraints_to_string(self):
-        string = ""
-        for const in self.constraints:
-            sorted_keys = const.keys()
-            constant = const.constant
-            rhseq = const.rhseq
-            sorted_keys.sort()
-            sorted_keys.reverse()
-            string += ' + '.join('%s * %s' % (const[key], key) 
-                        for key in sorted_keys)
-            if rhseq == 'eq':
-                string += ' == '
-            elif rhseq == 'ge':
-                string += ' >= '
-            else:
-                string += ' <= '
+  
 
-            string += ' %s\n' % -constant
-        return string
-    
-    
-
-    def objective_to_string(self):
-        string = "[ "
-        for obj in self.objective:
-            sorted_keys = obj.keys()
-            sorted_keys.sort()
-            sorted_keys.reverse()
-            string += ' + '.join('%s * %s' % (obj[key], key) 
-                        for key in sorted_keys)
-            string += ", "
-        string = string[:-2]    
-        string += " ]"
-        return string
-    
-    def __repr__(self):
-        string = ""
-        if self.name:
-            string += "Problem Name: %s\n\n" % self.name
-        
-        if self.objective:
-            if self.obj_dir == 'max':
-                string += "Maximize: %s\n\n" % self.objective_to_string()
-            else:
-                string += "Minimize: %s\n\n" % self.objective_to_string()
-        
-        
-        if self.constraints:
-            string += "Subject to:\n%s\n\n" % self.constraints_to_string()
-        
-        string += "Status: %s\n\n" % self.status
-        string += "Results:\n"
-        string += self.results_to_string() + "\n\n"
-        
-        #not print for goal problems?
-        if self.obj_value:
-            string += "Objective Value: %s" % self.obj_value
-
-        return string
-
-
-
-
-class Callback:
-    def select(self, tree):
-        # some code to select subproblems here...
-        pass
-    def prepro(self, tree):
-        # some code for preprocessing here...
-        pass
-    def rowgen(self, tree):
-        # some code for providing constraints here...
-        pass
-    def heur(self, tree):
-        # some code for providing heuristic solutions here...
-        pass
-    def cutgen(self, tree):
-        # some code for providing constraints here...
-        pass
-    def branch(self, tree):
-        # some code to choose a variable to branch on here...
-        pass
-    def bingo(self, tree):
-        # some code to monitor the situation her
-        pass
         
 
                       
