@@ -133,19 +133,15 @@ for key, val in prob.variables.iteritems():
 
 
 
-__version__ = "0.1"
-__date__ = "2009-06-29"
+__version__ = "0.1.1"
+__date__ = "2009-07-02"
 __maintainer__ = "Mario Romero"
 __author__ = "Mario Romero (mario@romero.fm)"
-__license__ = "GPL3"
+__license__ = "GPL"
 
 
 import glpk
 
-
-# TO DO
-
-# solve options
 
 
 class InputError(Exception):
@@ -331,7 +327,8 @@ class LpProblem(object):
     
     def _obj_to_constraint(self):
         """
-        Make consraint out of last solved objective
+        Make consraint out of last solved objective.
+        (for goal (multi-objective) programming problems)
         """
 
         rowid = self.lpx.rows.add(1)
@@ -351,14 +348,14 @@ class LpProblem(object):
 
 
     def variable(self, name, lower=None, upper=None, type=float):
-        count = len(self.lpx.cols)
-        self.lpx.cols.add(1)
-        col = self.lpx.cols[count]
+        rowid = self.lpx.cols.add(1)
+        col = self.lpx.cols[rowid]
         col.name = name
         col.bounds = lower, upper
         col.kind = type
         var = LpVariable(self.lpx, name, lower, upper, type)
         self._vars[name] = var
+        
         return var
 
     def solve(self, **kwds):
@@ -370,6 +367,7 @@ class LpProblem(object):
         self._sync_direction()
         self._sync_objectives()
 
+        #callback object for integer programming
         cb = None
         if 'callback' in kwds:
             cb = kwds['callback']
@@ -427,11 +425,9 @@ class LpVariable(object):
        lp -- enclosing lp problem
     
     Properties:
-       type -- variable type*
-             -'float'
-             -'int'
-       lower -- var lower bound
-       upper -- var upper bound
+       type -- decision variable type
+       lower -- lower bound
+       upper -- upper bound
 
     """
     def __init__(self, lp, name, lower=None, upper=None, type='float'):
